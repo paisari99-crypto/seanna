@@ -40,7 +40,7 @@ export default function HabitNew() {
         userId = newProfile.id;
       }
 
-      await base44.entities.Habit.create({
+      const newHabit = await base44.entities.Habit.create({
         userId,
         name: name.trim(),
         description: description.trim() || undefined,
@@ -48,7 +48,7 @@ export default function HabitNew() {
         isActive: true
       });
 
-      navigate(createPageUrl('Habits'));
+      navigate(`${createPageUrl('HabitDetail')}?id=${newHabit.id}`);
     } catch (err) {
       console.error('Error saving habit:', err);
       setError('Failed to save habit');
