@@ -32,6 +32,11 @@ export default function TodaySummary({ totalHabits, completedToday, tomorrowHabi
           ? 'Tomorrow: Same system continues'
           : `Tomorrow: ${tomorrowHabits} habit${tomorrowHabits !== 1 ? 's' : ''} scheduled`}
       </p>
+      {totalHabits > 7 && (
+        <p className="text-xs mb-4" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+          Many active habits. Focus on your essentials.
+        </p>
+      )}
       {!allCompleted && (
         <button
           onClick={() => navigate(createPageUrl('Habits'))}
