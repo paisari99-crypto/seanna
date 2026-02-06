@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import About from './pages/About';
 import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
 import DecisionCriterionNew from './pages/DecisionCriterionNew';
 import DecisionDetail from './pages/DecisionDetail';
@@ -54,6 +55,7 @@ import DecisionNew from './pages/DecisionNew';
 import DecisionOptionDetail from './pages/DecisionOptionDetail';
 import DecisionOptionNew from './pages/DecisionOptionNew';
 import Decisions from './pages/Decisions';
+import Disclaimer from './pages/Disclaimer';
 import HabitDetail from './pages/HabitDetail';
 import HabitNew from './pages/HabitNew';
 import Habits from './pages/Habits';
@@ -63,14 +65,13 @@ import Journal from './pages/Journal';
 import JournalDetail from './pages/JournalDetail';
 import JournalEdit from './pages/JournalEdit';
 import JournalNew from './pages/JournalNew';
-import Settings from './pages/Settings';
-import About from './pages/About';
-import Privacy from './pages/Privacy';
-import Disclaimer from './pages/Disclaimer';
 import Onboarding from './pages/Onboarding';
+import Privacy from './pages/Privacy';
+import Settings from './pages/Settings';
 
 
 export const PAGES = {
+    "About": About,
     "DecisionCriterionDetail": DecisionCriterionDetail,
     "DecisionCriterionNew": DecisionCriterionNew,
     "DecisionDetail": DecisionDetail,
@@ -78,6 +79,7 @@ export const PAGES = {
     "DecisionOptionDetail": DecisionOptionDetail,
     "DecisionOptionNew": DecisionOptionNew,
     "Decisions": Decisions,
+    "Disclaimer": Disclaimer,
     "HabitDetail": HabitDetail,
     "HabitNew": HabitNew,
     "Habits": Habits,
@@ -87,11 +89,9 @@ export const PAGES = {
     "JournalDetail": JournalDetail,
     "JournalEdit": JournalEdit,
     "JournalNew": JournalNew,
-    "Settings": Settings,
-    "About": About,
-    "Privacy": Privacy,
-    "Disclaimer": Disclaimer,
     "Onboarding": Onboarding,
+    "Privacy": Privacy,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

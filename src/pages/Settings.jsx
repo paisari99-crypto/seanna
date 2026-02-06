@@ -237,6 +237,30 @@ export default function Settings() {
                 </Link>
               </div>
             </div>
+
+            {/* Card 5: Developer */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Developer
+              </h2>
+              <button
+                onClick={() => base44.auth.logout()}
+                className="w-full py-3 font-semibold"
+                style={{
+                  backgroundColor: '#C9A227',
+                  color: '#0F1115',
+                  borderRadius: '18px'
+                }}
+              >
+                Logout
+              </button>
+            </div>
           </div>
         )}
       </div>
