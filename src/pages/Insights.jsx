@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, Lock } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import WeeklyPatternCard from '../components/WeeklyPatternCard';
 import { getMostConsistentHabit, getMostMissedHabit, getBestWeekday } from '../components/insightUtils';
 
 export default function Insights() {
@@ -236,6 +237,13 @@ Provide a structured weekly review in the following JSON format:
           </div>
         ) : (
           <div className="space-y-4">
+            <WeeklyPatternCard 
+              mostConsistent={mostConsistentHabit}
+              mostMissed={mostMissedHabit}
+              bestWeekday={bestWeekday}
+              totalLogs={metrics.totalHabitLogs}
+            />
+
             {/* Card 1: Journal cadence */}
             <div
               className="p-5"
