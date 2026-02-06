@@ -8,6 +8,7 @@ import BottomNav from '../components/BottomNav';
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [habitStreaks, setHabitStreaks] = useState({});
+  const [habitCompletedToday, setHabitCompletedToday] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,16 +25,24 @@ export default function Habits() {
           );
           setHabits(activeHabits);
 
-          // Calculate streaks for each habit
+          // Calculate streaks and check today's completion for each habit
           const streaks = {};
+          const completedToday = {};
+          const today = new Date().toISOString().split('T')[0];
+          
           for (const habit of activeHabits) {
             const logs = await base44.entities.HabitLog.filter(
               { habitId: habit.id, userId },
               '-date'
             );
             streaks[habit.id] = calculateStreak(logs);
+            
+            // Check if habit is done today
+            const todayLog = logs.find(log => log.date === today);
+            completedToday[habit.id] = todayLog?.status === 'done';
           }
           setHabitStreaks(streaks);
+          setHabitCompletedToday(completedToday);
         }
       } catch (error) {
         console.error('Error loading habits:', error);
@@ -145,19 +154,29 @@ export default function Habits() {
           </div>
         ) : (
           <div className="space-y-3">
-            {habits.map((habit) => (
-              <Link
-                key={habit.id}
-                to={`${createPageUrl('HabitDetail')}?id=${habit.id}`}
-                className="block"
-              >
-                <div
-                  className="p-4 transition-transform hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#1A1D24',
-                    borderRadius: '18px'
-                  }}
+            {habits.map((habit) => {
+              const isCompleted = habitCompletedToday[habit.id];
+              return (
+                <Link
+                  key={habit.id}
+                  to={`${createPageUrl('HabitDetail')}?id=${habit.id}`}
+                  className="block"
                 >
+                  <div
+                    className="p-4 transition-transform hover:scale-[1.02] relative"
+                    style={{
+                      backgroundColor: '#1A1D24',
+                      borderRadius: '18px',
+                      border: isCompleted ? 'none' : '1px solid rgba(201, 162, 39, 0.3)',
+                      opacity: isCompleted ? 0.7 : 1
+                    }}
+                  >
+                    {!isCompleted && (
+                      <div
+                        className="absolute top-3 right-3 w-2 h-2 rounded-full"
+                        style={{ backgroundColor: '#C9A227' }}
+                      />
+                    )}
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="text-lg font-semibold flex-1" style={{ color: '#E8EAF0' }}>
                       {habit.name}
@@ -183,9 +202,10 @@ export default function Habits() {
                       {truncateDescription(habit.description)}
                     </p>
                   )}
-                </div>
-              </Link>
-            ))}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
