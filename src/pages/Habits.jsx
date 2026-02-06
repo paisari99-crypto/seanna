@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Plus, AlertCircle } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
-import { getUserToday } from '../lib/dateUtils';
+import { getUserToday } from '../components/dateUtils';
 import { format } from 'date-fns';
 
 export default function Habits() {
