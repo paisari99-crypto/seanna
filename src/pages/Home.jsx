@@ -1,10 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { BookOpen, Target, GitBranch, TrendingUp } from 'lucide-react';
+import { BookOpen, Target, GitBranch, TrendingUp, Settings } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
 export default function Home() {
+  const navigate = useNavigate();
+  
   const cards = [
     {
       id: 'journal',
@@ -39,12 +41,23 @@ export default function Home() {
   return (
     <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
       <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
-        <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
-          Seanna
-        </h1>
-        <p className="text-lg" style={{ color: '#9AA3B2' }}>
-          Your cognitive toolkit
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+              Seanna
+            </h1>
+            <p className="text-lg" style={{ color: '#9AA3B2' }}>
+              Your cognitive toolkit
+            </p>
+          </div>
+          <button
+            onClick={() => navigate(createPageUrl('Settings'))}
+            className="p-2"
+            style={{ color: '#9AA3B2' }}
+          >
+            <Settings size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="px-4 pb-8">
