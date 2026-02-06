@@ -25,7 +25,7 @@ export default function GuidanceCard({ habitCount, developerPreview }) {
         Build one small habit to see how Seanna works.
       </p>
       <button
-        onClick={() => navigate(createPageUrl('HabitNew'))}
+        onClick={() => navigate(`${createPageUrl('HabitNew')}?onboarding=true`)}
         className="px-4 py-2 font-semibold"
         style={{
           backgroundColor: '#C9A227',

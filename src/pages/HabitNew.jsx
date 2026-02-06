@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function HabitNew() {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
+  const urlParams = new URLSearchParams(window.location.search);
+  const isOnboarding = urlParams.get('onboarding') === 'true';
+  
+  const [name, setName] = useState(isOnboarding ? '10-minute focus session' : '');
   const [description, setDescription] = useState('');
   const [scheduleType, setScheduleType] = useState('daily');
   const [saving, setSaving] = useState(false);
