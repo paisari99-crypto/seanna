@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import StreakStrip from '../components/StreakStrip';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getUserToday, getUserDate, calculateCurrentStreak, calculateBestStreak } from '../components/dateUtils';
@@ -345,7 +346,7 @@ export default function HabitDetail() {
                 {currentStreak} day{currentStreak !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 mb-4">
               <span className="text-sm" style={{ color: '#9AA3B2' }}>
                 Best streak:
               </span>
@@ -354,10 +355,11 @@ export default function HabitDetail() {
               </span>
             </div>
             {currentStreak > 0 && currentStreak === bestStreak && (
-              <p className="text-xs mt-2" style={{ color: '#C9A227' }}>
+              <p className="text-xs mb-3" style={{ color: '#C9A227' }}>
                 New personal record
               </p>
             )}
+            <StreakStrip logs={recentLogs} userTimezone={userProfile?.timezone || 'UTC'} />
           </div>
         )}
 
