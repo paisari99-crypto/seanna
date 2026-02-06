@@ -1,11 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
 import { BookOpen, Target, GitBranch, TrendingUp, Settings } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
 export default function Home() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        
+        if (userProfiles.length === 0 || !userProfiles[0].displayName) {
+          navigate(createPageUrl('Onboarding'));
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking onboarding:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkOnboarding();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-6" style={{ backgroundColor: '#0F1115' }}>
+        <p style={{ color: '#9AA3B2' }}>Loading...</p>
+      </div>
+    );
+  }
   
   const cards = [
     {
