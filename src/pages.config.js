@@ -67,6 +67,7 @@ import Settings from './pages/Settings';
 import About from './pages/About';
 import Privacy from './pages/Privacy';
 import Disclaimer from './pages/Disclaimer';
+import Onboarding from './pages/Onboarding';
 
 
 export const PAGES = {
@@ -90,6 +91,7 @@ export const PAGES = {
     "About": About,
     "Privacy": Privacy,
     "Disclaimer": Disclaimer,
+    "Onboarding": Onboarding,
 }
 
 export const pagesConfig = {
