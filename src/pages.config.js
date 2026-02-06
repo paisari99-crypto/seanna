@@ -64,6 +64,9 @@ import JournalDetail from './pages/JournalDetail';
 import JournalEdit from './pages/JournalEdit';
 import JournalNew from './pages/JournalNew';
 import Settings from './pages/Settings';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Disclaimer from './pages/Disclaimer';
 
 
 export const PAGES = {
@@ -84,6 +87,9 @@ export const PAGES = {
     "JournalEdit": JournalEdit,
     "JournalNew": JournalNew,
     "Settings": Settings,
+    "About": About,
+    "Privacy": Privacy,
+    "Disclaimer": Disclaimer,
 }
 
 export const pagesConfig = {
