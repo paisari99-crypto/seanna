@@ -112,6 +112,59 @@ export default function Habits() {
     return desc.length > 60 ? desc.substring(0, 60) + '...' : desc;
   };
 
+  const renderHabitCard = (habit) => {
+    const isCompleted = habitCompletedToday[habit.id];
+    return (
+      <Link
+        key={habit.id}
+        to={`${createPageUrl('HabitDetail')}?id=${habit.id}`}
+        className="block"
+      >
+        <div
+          className="p-4 transition-transform hover:scale-[1.02] relative"
+          style={{
+            backgroundColor: '#1A1D24',
+            borderRadius: '18px',
+            border: isCompleted ? 'none' : '1px solid rgba(201, 162, 39, 0.3)',
+            opacity: isCompleted ? 0.7 : 1
+          }}
+        >
+          {!isCompleted && (
+            <div
+              className="absolute top-3 right-3 w-2 h-2 rounded-full"
+              style={{ backgroundColor: '#C9A227' }}
+            />
+          )}
+          <div className="flex justify-between items-start mb-1">
+            <h3 className="text-lg font-semibold flex-1" style={{ color: '#E8EAF0' }}>
+              {habit.name}
+            </h3>
+            <span
+              className="px-2 py-1 text-xs ml-2"
+              style={{
+                backgroundColor: '#0F1115',
+                color: '#C9A227',
+                borderRadius: '12px'
+              }}
+            >
+              {getScheduleLabel(habit.scheduleType)}
+            </span>
+          </div>
+          <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+            {habitStreaks[habit.id] > 0 
+              ? `Streak: ${habitStreaks[habit.id]} day${habitStreaks[habit.id] !== 1 ? 's' : ''}`
+              : 'No active streak'}
+          </p>
+          {habit.description && (
+            <p className="text-sm" style={{ color: '#9AA3B2' }}>
+              {truncateDescription(habit.description)}
+            </p>
+          )}
+        </div>
+      </Link>
+    );
+  };
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
@@ -189,56 +242,4 @@ export default function Habits() {
       <BottomNav />
     </div>
   );
-  
-    const isCompleted = habitCompletedToday[habit.id];
-    return (
-      <Link
-        key={habit.id}
-        to={`${createPageUrl('HabitDetail')}?id=${habit.id}`}
-        className="block"
-      >
-        <div
-          className="p-4 transition-transform hover:scale-[1.02] relative"
-          style={{
-            backgroundColor: '#1A1D24',
-            borderRadius: '18px',
-            border: isCompleted ? 'none' : '1px solid rgba(201, 162, 39, 0.3)',
-            opacity: isCompleted ? 0.7 : 1
-          }}
-        >
-          {!isCompleted && (
-            <div
-              className="absolute top-3 right-3 w-2 h-2 rounded-full"
-              style={{ backgroundColor: '#C9A227' }}
-            />
-          )}
-          <div className="flex justify-between items-start mb-1">
-            <h3 className="text-lg font-semibold flex-1" style={{ color: '#E8EAF0' }}>
-              {habit.name}
-            </h3>
-            <span
-              className="px-2 py-1 text-xs ml-2"
-              style={{
-                backgroundColor: '#0F1115',
-                color: '#C9A227',
-                borderRadius: '12px'
-              }}
-            >
-              {getScheduleLabel(habit.scheduleType)}
-            </span>
-          </div>
-          <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
-            {habitStreaks[habit.id] > 0 
-              ? `Streak: ${habitStreaks[habit.id]} day${habitStreaks[habit.id] !== 1 ? 's' : ''}`
-              : 'No active streak'}
-          </p>
-          {habit.description && (
-            <p className="text-sm" style={{ color: '#9AA3B2' }}>
-              {truncateDescription(habit.description)}
-            </p>
-          )}
-        </div>
-      </Link>
-    );
-  }
 }
