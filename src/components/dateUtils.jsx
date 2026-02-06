@@ -116,3 +116,17 @@ export const calculateBestStreak = (logs) => {
 
   return maxStreak;
 };
+
+/**
+ * Get the start of the current week (Monday) in user's timezone
+ * @param {string} dateStr - YYYY-MM-DD date string
+ * @returns {string} YYYY-MM-DD for the Monday of that week
+ */
+export const getStartOfWeek = (dateStr) => {
+  const date = new Date(dateStr);
+  const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+  const daysToMonday = (dayOfWeek + 6) % 7; // Days to go back to Monday
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - daysToMonday);
+  return format(monday, 'yyyy-MM-dd');
+};
