@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import About from './pages/About';
+import ArchivedHabits from './pages/ArchivedHabits';
 import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
 import DecisionCriterionNew from './pages/DecisionCriterionNew';
 import DecisionDetail from './pages/DecisionDetail';
@@ -68,11 +69,11 @@ import JournalNew from './pages/JournalNew';
 import Onboarding from './pages/Onboarding';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
-import ArchivedHabits from './pages/ArchivedHabits';
 
 
 export const PAGES = {
     "About": About,
+    "ArchivedHabits": ArchivedHabits,
     "DecisionCriterionDetail": DecisionCriterionDetail,
     "DecisionCriterionNew": DecisionCriterionNew,
     "DecisionDetail": DecisionDetail,
@@ -93,7 +94,6 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Privacy": Privacy,
     "Settings": Settings,
-    "ArchivedHabits": ArchivedHabits,
 }
 
 export const pagesConfig = {
