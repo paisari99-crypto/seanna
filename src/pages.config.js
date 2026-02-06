@@ -57,6 +57,8 @@ import JournalDetail from './pages/JournalDetail';
 import JournalEdit from './pages/JournalEdit';
 import HabitNew from './pages/HabitNew';
 import HabitDetail from './pages/HabitDetail';
+import DecisionNew from './pages/DecisionNew';
+import DecisionDetail from './pages/DecisionDetail';
 
 
 export const PAGES = {
@@ -70,6 +72,8 @@ export const PAGES = {
     "JournalEdit": JournalEdit,
     "HabitNew": HabitNew,
     "HabitDetail": HabitDetail,
+    "DecisionNew": DecisionNew,
+    "DecisionDetail": DecisionDetail,
 }
 
 export const pagesConfig = {
