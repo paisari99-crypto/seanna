@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
-import { getUserToday, getUserDate } from '../utils/dateUtils';
+import { getUserToday, getUserDate } from '../lib/dateUtils';
 
 export default function Home() {
   const navigate = useNavigate();

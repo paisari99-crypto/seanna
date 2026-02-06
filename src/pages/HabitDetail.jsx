@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { getUserToday, getUserDate } from '../utils/dateUtils';
+import { getUserToday, getUserDate } from '../lib/dateUtils';
 import {
   AlertDialog,
   AlertDialogAction,
