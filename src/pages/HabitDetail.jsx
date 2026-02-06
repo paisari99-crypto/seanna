@@ -27,6 +27,8 @@ export default function HabitDetail() {
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [isFirstHabit, setIsFirstHabit] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
 
   const today = format(startOfDay(new Date()), 'yyyy-MM-dd');
 
@@ -69,6 +71,12 @@ export default function HabitDetail() {
           const allLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
           const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= today);
           setRecentLogs(filteredLogs);
+          
+          // Calculate streaks
+          const current = calculateCurrentStreak(allLogs);
+          const best = calculateBestStreak(allLogs);
+          setCurrentStreak(current);
+          setBestStreak(best);
         }
       } catch (error) {
         console.error('Error loading habit:', error);
@@ -91,6 +99,13 @@ export default function HabitDetail() {
         
         // Update recent logs
         setRecentLogs(prev => prev.map(log => log.id === updated.id ? updated : log));
+        
+        // Recalculate streaks
+        const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
+        const current = calculateCurrentStreak(allLogs);
+        const best = calculateBestStreak(allLogs);
+        setCurrentStreak(current);
+        setBestStreak(best);
       } else {
         // Check if this is the first habit log ever
         const isFirstLogEver = recentLogs.length === 0;
@@ -106,6 +121,13 @@ export default function HabitDetail() {
         
         // Add to recent logs
         setRecentLogs(prev => [newLog, ...prev]);
+        
+        // Recalculate streaks
+        const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
+        const current = calculateCurrentStreak(allLogs);
+        const best = calculateBestStreak(allLogs);
+        setCurrentStreak(current);
+        setBestStreak(best);
         
         // Show success toast and navigate for first-time users
         if (isFirstLogEver) {
@@ -129,6 +151,76 @@ export default function HabitDetail() {
       console.error('Error archiving habit:', error);
       setArchiving(false);
     }
+  };
+
+  const calculateCurrentStreak = (logs) => {
+    if (logs.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const mostRecentLog = sortedLogs[0];
+    const mostRecentDate = new Date(mostRecentLog.date);
+    mostRecentDate.setHours(0, 0, 0, 0);
+
+    if (mostRecentDate < yesterday) return 0;
+    if (mostRecentLog.status !== 'done') return 0;
+
+    let streak = 0;
+    let currentDate = new Date(mostRecentDate);
+
+    for (const log of sortedLogs) {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+
+      if (logDate.getTime() === currentDate.getTime() && log.status === 'done') {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else if (logDate.getTime() < currentDate.getTime()) {
+        break;
+      }
+    }
+
+    return streak;
+  };
+
+  const calculateBestStreak = (logs) => {
+    if (logs.length === 0) return 0;
+
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let maxStreak = 0;
+    let currentStreak = 0;
+    let lastDate = null;
+
+    for (const log of sortedLogs) {
+      if (log.status !== 'done') {
+        currentStreak = 0;
+        lastDate = null;
+        continue;
+      }
+
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+
+      if (!lastDate) {
+        currentStreak = 1;
+      } else {
+        const dayDiff = Math.round((logDate - lastDate) / (1000 * 60 * 60 * 24));
+        if (dayDiff === 1) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+      }
+
+      maxStreak = Math.max(maxStreak, currentStreak);
+      lastDate = logDate;
+    }
+
+    return maxStreak;
   };
 
   const getScheduleLabel = (type) => {
@@ -295,6 +387,39 @@ export default function HabitDetail() {
             </button>
           </div>
         </div>
+
+        {/* Streak stats */}
+        {recentLogs.length > 0 && (
+          <div
+            className="p-4 mb-4"
+            style={{
+              backgroundColor: '#1A1D24',
+              borderRadius: '18px'
+            }}
+          >
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-sm" style={{ color: '#9AA3B2' }}>
+                Current streak:
+              </span>
+              <span className="text-lg font-semibold" style={{ color: '#E8EAF0' }}>
+                {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm" style={{ color: '#9AA3B2' }}>
+                Best streak:
+              </span>
+              <span className="text-lg font-semibold" style={{ color: '#E8EAF0' }}>
+                {bestStreak} day{bestStreak !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {currentStreak > 0 && currentStreak === bestStreak && (
+              <p className="text-xs mt-2" style={{ color: '#C9A227' }}>
+                New personal record
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Recent history */}
         <div>
