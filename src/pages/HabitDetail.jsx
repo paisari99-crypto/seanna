@@ -265,6 +265,24 @@ export default function HabitDetail() {
             </div>
           )}
         </div>
+
+        {/* Archive habit */}
+        <div className="mt-6">
+          <button
+            onClick={() => setShowArchiveDialog(true)}
+            className="w-full py-3 font-semibold"
+            style={{
+              backgroundColor: '#1A1D24',
+              color: '#E8EAF0',
+              borderRadius: '18px'
+            }}
+          >
+            Archive habit
+          </button>
+          <p className="text-xs mt-2 text-center" style={{ color: '#9AA3B2' }}>
+            Archived habits are hidden but not deleted.
+          </p>
+        </div>
       </div>
 
       <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
