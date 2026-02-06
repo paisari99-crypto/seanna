@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -79,6 +80,13 @@ export default function Settings() {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
         <div className="mb-6">
           <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>
             Settings

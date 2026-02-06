@@ -1,10 +1,21 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
 export default function Disclaimer() {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
         <div className="mb-6">
           <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>
             Disclaimer

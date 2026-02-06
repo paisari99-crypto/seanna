@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Trash2, Edit, Sparkles, Lock } from 'lucide-react';
+import { Trash2, Edit, Sparkles, Lock, ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format } from 'date-fns';
 import {
@@ -146,6 +146,13 @@ Provide a response in the following JSON format:
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-3xl font-semibold flex-1" style={{ color: '#E8EAF0' }}>
             {entry.title || 'Untitled'}
