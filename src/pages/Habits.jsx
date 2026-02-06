@@ -5,6 +5,8 @@ import { base44 } from '@/api/base44Client';
 import { Plus, AlertCircle } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
+import { getUserToday } from '../utils/dateUtils';
+import { format } from 'date-fns';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
@@ -31,14 +33,14 @@ export default function Habits() {
           // Calculate streaks and check today's completion for each habit
           const streaks = {};
           const completedToday = {};
-          const today = new Date().toISOString().split('T')[0];
+          const today = await getUserToday();
           
           for (const habit of activeHabits) {
             const logs = await base44.entities.HabitLog.filter(
               { habitId: habit.id, userId },
               '-date'
             );
-            streaks[habit.id] = calculateStreak(logs);
+            streaks[habit.id] = calculateStreak(logs, today);
             
             // Check if habit is done today
             const todayLog = logs.find(log => log.date === today);
@@ -135,43 +137,31 @@ export default function Habits() {
     return matrix[str2.length][str1.length];
   };
 
-  const calculateStreak = (logs) => {
+  const calculateStreak = (logs, todayStr) => {
     if (logs.length === 0) return 0;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    // Sort logs by date descending
-    const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // Check if the most recent log is today or yesterday with status "done"
+    const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
     const mostRecentLog = sortedLogs[0];
-    const mostRecentDate = new Date(mostRecentLog.date);
-    mostRecentDate.setHours(0, 0, 0, 0);
 
-    if (mostRecentDate < yesterday) {
-      return 0; // Streak broken if last log is before yesterday
-    }
+    // Check if most recent log is today or yesterday
+    const todayDate = new Date(todayStr);
+    const yesterdayDate = new Date(todayStr);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = format(yesterdayDate, 'yyyy-MM-dd');
 
-    if (mostRecentLog.status !== 'done') {
-      return 0; // Streak broken if most recent is not "done"
-    }
+    if (mostRecentLog.date !== todayStr && mostRecentLog.date !== yesterdayStr) return 0;
+    if (mostRecentLog.status !== 'done') return 0;
 
-    // Count consecutive "done" days backwards from most recent
     let streak = 0;
-    let currentDate = new Date(mostRecentDate);
+    let expectedDate = mostRecentLog.date;
 
     for (const log of sortedLogs) {
-      const logDate = new Date(log.date);
-      logDate.setHours(0, 0, 0, 0);
-
-      if (logDate.getTime() === currentDate.getTime() && log.status === 'done') {
+      if (log.date === expectedDate && log.status === 'done') {
         streak++;
-        currentDate.setDate(currentDate.getDate() - 1);
-      } else if (logDate.getTime() < currentDate.getTime()) {
-        // Gap in dates or non-done status, streak ends
+        const nextDate = new Date(expectedDate);
+        nextDate.setDate(nextDate.getDate() - 1);
+        expectedDate = format(nextDate, 'yyyy-MM-dd');
+      } else if (log.date < expectedDate) {
         break;
       }
     }

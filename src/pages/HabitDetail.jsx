@@ -4,8 +4,9 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
-import { format, startOfDay, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { getUserToday, getUserDate } from '../utils/dateUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,11 +30,12 @@ export default function HabitDetail() {
   const [isFirstHabit, setIsFirstHabit] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-
-  const today = format(startOfDay(new Date()), 'yyyy-MM-dd');
+  const [today, setToday] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
+      const todayDate = await getUserToday();
+      setToday(todayDate);
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
@@ -67,13 +69,13 @@ export default function HabitDetail() {
           }
 
           // Load last 14 days of logs
-          const fourteenDaysAgo = format(subDays(startOfDay(new Date()), 13), 'yyyy-MM-dd');
+          const fourteenDaysAgo = await getUserDate(-13);
           const allLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
-          const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= today);
+          const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= todayDate);
           setRecentLogs(filteredLogs);
           
           // Calculate streaks
-          const current = calculateCurrentStreak(allLogs);
+          const current = calculateCurrentStreak(allLogs, todayDate);
           const best = calculateBestStreak(allLogs);
           setCurrentStreak(current);
           setBestStreak(best);
@@ -86,7 +88,7 @@ export default function HabitDetail() {
     };
     
     loadData();
-  }, [navigate, today]);
+  }, [navigate]);
 
   const handleStatusClick = async (status) => {
     if (!userId || !habit) return;
@@ -102,7 +104,8 @@ export default function HabitDetail() {
         
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
-        const current = calculateCurrentStreak(allLogs);
+        const todayDate = await getUserToday();
+        const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
         setCurrentStreak(current);
         setBestStreak(best);
@@ -124,7 +127,8 @@ export default function HabitDetail() {
         
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
-        const current = calculateCurrentStreak(allLogs);
+        const todayDate = await getUserToday();
+        const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
         setCurrentStreak(current);
         setBestStreak(best);
@@ -153,33 +157,31 @@ export default function HabitDetail() {
     }
   };
 
-  const calculateCurrentStreak = (logs) => {
+  const calculateCurrentStreak = (logs, todayStr) => {
     if (logs.length === 0) return 0;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
     const mostRecentLog = sortedLogs[0];
-    const mostRecentDate = new Date(mostRecentLog.date);
-    mostRecentDate.setHours(0, 0, 0, 0);
 
-    if (mostRecentDate < yesterday) return 0;
+    // Check if most recent log is today or yesterday
+    const todayDate = new Date(todayStr);
+    const yesterdayDate = new Date(todayStr);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = format(yesterdayDate, 'yyyy-MM-dd');
+
+    if (mostRecentLog.date !== todayStr && mostRecentLog.date !== yesterdayStr) return 0;
     if (mostRecentLog.status !== 'done') return 0;
 
     let streak = 0;
-    let currentDate = new Date(mostRecentDate);
+    let expectedDate = mostRecentLog.date;
 
     for (const log of sortedLogs) {
-      const logDate = new Date(log.date);
-      logDate.setHours(0, 0, 0, 0);
-
-      if (logDate.getTime() === currentDate.getTime() && log.status === 'done') {
+      if (log.date === expectedDate && log.status === 'done') {
         streak++;
-        currentDate.setDate(currentDate.getDate() - 1);
-      } else if (logDate.getTime() < currentDate.getTime()) {
+        const nextDate = new Date(expectedDate);
+        nextDate.setDate(nextDate.getDate() - 1);
+        expectedDate = format(nextDate, 'yyyy-MM-dd');
+      } else if (log.date < expectedDate) {
         break;
       }
     }

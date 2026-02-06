@@ -7,6 +7,7 @@ import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
+import { getUserToday, getUserDate } from '../utils/dateUtils';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function Home() {
         setTotalActiveHabits(activeHabits.length);
 
         // Check if user has logged any habit today
-        const today = new Date().toISOString().split('T')[0];
+        const today = await getUserToday();
         const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
         setHasLoggedToday(todayLogs.length > 0);
 
@@ -52,11 +53,7 @@ export default function Home() {
         setCompletedToday(completedCount);
 
         // Calculate this week's completed habits
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-        const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+        const startOfWeekStr = await getUserDate(-new Date(today).getDay());
 
         const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
         const thisWeekCompleted = thisWeekLogs.filter(log => 
@@ -65,9 +62,7 @@ export default function Home() {
         setThisWeekCount(thisWeekCompleted);
 
         // Calculate last week's completed habits
-        const startOfLastWeek = new Date(startOfWeek);
-        startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
-        const startOfLastWeekStr = startOfLastWeek.toISOString().split('T')[0];
+        const startOfLastWeekStr = await getUserDate(-new Date(today).getDay() - 7);
 
         const lastWeekCompleted = thisWeekLogs.filter(log => 
           log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
