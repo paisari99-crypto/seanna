@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { ChevronRight } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import {
   AlertDialog,
@@ -187,6 +190,44 @@ export default function Settings() {
                   {deleteMessage}
                 </p>
               )}
+            </div>
+
+            {/* Card 4: Information */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Information
+              </h2>
+              <div className="space-y-2">
+                <Link
+                  to={createPageUrl('About')}
+                  className="flex items-center justify-between py-3"
+                  style={{ borderBottom: '1px solid rgba(202, 162, 39, 0.1)' }}
+                >
+                  <span style={{ color: '#E8EAF0' }}>About Seanna</span>
+                  <ChevronRight size={18} style={{ color: '#9AA3B2' }} />
+                </Link>
+                <Link
+                  to={createPageUrl('Privacy')}
+                  className="flex items-center justify-between py-3"
+                  style={{ borderBottom: '1px solid rgba(202, 162, 39, 0.1)' }}
+                >
+                  <span style={{ color: '#E8EAF0' }}>Privacy</span>
+                  <ChevronRight size={18} style={{ color: '#9AA3B2' }} />
+                </Link>
+                <Link
+                  to={createPageUrl('Disclaimer')}
+                  className="flex items-center justify-between py-3"
+                >
+                  <span style={{ color: '#E8EAF0' }}>Disclaimer</span>
+                  <ChevronRight size={18} style={{ color: '#9AA3B2' }} />
+                </Link>
+              </div>
             </div>
           </div>
         )}
