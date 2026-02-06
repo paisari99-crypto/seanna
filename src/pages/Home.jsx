@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { BookOpen, Target, GitBranch, TrendingUp } from 'lucide-react';
+import BottomNav from '../components/BottomNav';
 
 export default function Home() {
   const cards = [
@@ -36,7 +37,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0F1115' }}>
+    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
       <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
           Seanna
@@ -76,6 +77,8 @@ export default function Home() {
           })}
         </div>
       </div>
+      
+      <BottomNav />
     </div>
   );
 }
