@@ -12,6 +12,10 @@ export default function Home() {
   const [habitCount, setHabitCount] = useState(0);
   const [hasLoggedToday, setHasLoggedToday] = useState(false);
   
+  // Check if just completed a habit
+  const urlParams = new URLSearchParams(window.location.search);
+  const justCompleted = urlParams.get('justCompleted') === 'true';
+  
   // Developer testing override
   const developerPreviewGuidance = true;
 
@@ -107,7 +111,12 @@ export default function Home() {
       </div>
 
       <div className="px-4 pb-8">
-        <GuidanceCard habitCount={habitCount} hasLoggedToday={hasLoggedToday} developerPreview={developerPreviewGuidance} />
+        <GuidanceCard 
+          habitCount={habitCount} 
+          hasLoggedToday={hasLoggedToday} 
+          justCompleted={justCompleted}
+          developerPreview={developerPreviewGuidance} 
+        />
 
         <div className="grid grid-cols-2 gap-3">
           {cards.map((card) => {

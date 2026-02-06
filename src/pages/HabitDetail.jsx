@@ -111,7 +111,7 @@ export default function HabitDetail() {
         if (isFirstLogEver) {
           toast.success('First step completed.');
           setTimeout(() => {
-            navigate(createPageUrl('Home'));
+            navigate(`${createPageUrl('Home')}?justCompleted=true`);
           }, 2000);
         }
       }

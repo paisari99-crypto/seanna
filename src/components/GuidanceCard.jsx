@@ -1,20 +1,29 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { motion } from 'framer-motion';
 
-export default function GuidanceCard({ habitCount, hasLoggedToday, developerPreview }) {
+export default function GuidanceCard({ habitCount, hasLoggedToday, justCompleted, developerPreview }) {
   const navigate = useNavigate();
 
   // Priority 1: Habit completed today → success card
   if (hasLoggedToday) {
+    const CardWrapper = justCompleted ? motion.div : 'div';
+    const animationProps = justCompleted ? {
+      initial: { opacity: 0, y: 20 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: 0.3 }
+    } : {};
+
     return (
-      <div
+      <CardWrapper
         className="p-6 mb-6"
         style={{
           backgroundColor: '#1A1D24',
           borderRadius: '18px',
           border: '2px solid rgba(201, 162, 39, 0.3)'
         }}
+        {...animationProps}
       >
         <h3 className="text-xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
           System active
@@ -33,7 +42,7 @@ export default function GuidanceCard({ habitCount, hasLoggedToday, developerPrev
         >
           View insights
         </button>
-      </div>
+      </CardWrapper>
     );
   }
 
