@@ -167,36 +167,27 @@ export default function HabitDetail() {
         >
           <ArrowLeft size={24} />
         </button>
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
-              {habit.name}
-            </h1>
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className="px-2 py-1 text-xs"
-                style={{
-                  backgroundColor: '#1A1D24',
-                  color: '#C9A227',
-                  borderRadius: '12px'
-                }}
-              >
-                {getScheduleLabel(habit.scheduleType)}
-              </span>
-            </div>
-            {habit.description && (
-              <p className="text-sm" style={{ color: '#9AA3B2' }}>
-                {habit.description}
-              </p>
-            )}
+        <div className="mb-4">
+          <h1 className="text-3xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+            {habit.name}
+          </h1>
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="px-2 py-1 text-xs"
+              style={{
+                backgroundColor: '#1A1D24',
+                color: '#C9A227',
+                borderRadius: '12px'
+              }}
+            >
+              {getScheduleLabel(habit.scheduleType)}
+            </span>
           </div>
-          <button
-            onClick={() => setShowArchiveDialog(true)}
-            className="p-2 ml-2"
-            style={{ color: '#9AA3B2' }}
-          >
-            <Archive size={20} />
-          </button>
+          {habit.description && (
+            <p className="text-sm" style={{ color: '#9AA3B2' }}>
+              {habit.description}
+            </p>
+          )}
         </div>
 
         {/* Today's status */}
