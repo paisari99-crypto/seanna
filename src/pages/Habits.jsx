@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Plus, AlertCircle } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
-import { getUserToday } from '../components/dateUtils';
+import { getUserToday, calculateCurrentStreak } from '../components/dateUtils';
 import { format } from 'date-fns';
 
 export default function Habits() {
@@ -41,7 +41,7 @@ export default function Habits() {
               { habitId: habit.id, userId },
               '-date'
             );
-            streaks[habit.id] = calculateStreak(logs, today);
+            streaks[habit.id] = calculateCurrentStreak(logs, today);
             
             // Check if habit is done today
             const todayLog = logs.find(log => log.date === today);
@@ -138,37 +138,7 @@ export default function Habits() {
     return matrix[str2.length][str1.length];
   };
 
-  const calculateStreak = (logs, todayStr) => {
-    if (logs.length === 0) return 0;
 
-    const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
-    const mostRecentLog = sortedLogs[0];
-
-    // Check if most recent log is today or yesterday
-    const todayDate = new Date(todayStr);
-    const yesterdayDate = new Date(todayStr);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = format(yesterdayDate, 'yyyy-MM-dd');
-
-    if (mostRecentLog.date !== todayStr && mostRecentLog.date !== yesterdayStr) return 0;
-    if (mostRecentLog.status !== 'done') return 0;
-
-    let streak = 0;
-    let expectedDate = mostRecentLog.date;
-
-    for (const log of sortedLogs) {
-      if (log.date === expectedDate && log.status === 'done') {
-        streak++;
-        const nextDate = new Date(expectedDate);
-        nextDate.setDate(nextDate.getDate() - 1);
-        expectedDate = format(nextDate, 'yyyy-MM-dd');
-      } else if (log.date < expectedDate) {
-        break;
-      }
-    }
-
-    return streak;
-  };
 
   const getScheduleLabel = (type) => {
     const labels = {

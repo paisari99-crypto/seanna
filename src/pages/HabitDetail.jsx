@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { getUserToday, getUserDate } from '../components/dateUtils';
+import { getUserToday, getUserDate, calculateCurrentStreak, calculateBestStreak } from '../components/dateUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -161,73 +161,7 @@ export default function HabitDetail() {
     }
   };
 
-  const calculateCurrentStreak = (logs, todayStr) => {
-    if (logs.length === 0) return 0;
 
-    const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
-    const mostRecentLog = sortedLogs[0];
-
-    // Check if most recent log is today or yesterday
-    const todayDate = new Date(todayStr);
-    const yesterdayDate = new Date(todayStr);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = format(yesterdayDate, 'yyyy-MM-dd');
-
-    if (mostRecentLog.date !== todayStr && mostRecentLog.date !== yesterdayStr) return 0;
-    if (mostRecentLog.status !== 'done') return 0;
-
-    let streak = 0;
-    let expectedDate = mostRecentLog.date;
-
-    for (const log of sortedLogs) {
-      if (log.date === expectedDate && log.status === 'done') {
-        streak++;
-        const nextDate = new Date(expectedDate);
-        nextDate.setDate(nextDate.getDate() - 1);
-        expectedDate = format(nextDate, 'yyyy-MM-dd');
-      } else if (log.date < expectedDate) {
-        break;
-      }
-    }
-
-    return streak;
-  };
-
-  const calculateBestStreak = (logs) => {
-    if (logs.length === 0) return 0;
-
-    const sortedLogs = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
-    let maxStreak = 0;
-    let currentStreak = 0;
-    let lastDate = null;
-
-    for (const log of sortedLogs) {
-      if (log.status !== 'done') {
-        currentStreak = 0;
-        lastDate = null;
-        continue;
-      }
-
-      const logDate = new Date(log.date);
-      logDate.setHours(0, 0, 0, 0);
-
-      if (!lastDate) {
-        currentStreak = 1;
-      } else {
-        const dayDiff = Math.round((logDate - lastDate) / (1000 * 60 * 60 * 24));
-        if (dayDiff === 1) {
-          currentStreak++;
-        } else {
-          currentStreak = 1;
-        }
-      }
-
-      maxStreak = Math.max(maxStreak, currentStreak);
-      lastDate = logDate;
-    }
-
-    return maxStreak;
-  };
 
   const getScheduleLabel = (type) => {
     const labels = { daily: 'Daily', weekly: 'Weekly', custom: 'Custom' };
