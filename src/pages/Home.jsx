@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
-import { getUserToday, getUserDate } from '../components/dateUtils';
+import { getUserToday, getUserDate, getStartOfWeek } from '../components/dateUtils';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -57,17 +57,23 @@ export default function Home() {
         setCompletedToday(completedCount);
 
         // Calculate this week's completed habits (only active habits)
-        const startOfWeekStr = getUserDate(profile, -new Date(today).getDay());
+        // Week starts Monday 00:00, ends Sunday 23:59:59 in user's timezone
+        const startOfWeekStr = getStartOfWeek(today);
+        const nextMondayDate = new Date(startOfWeekStr);
+        nextMondayDate.setDate(nextMondayDate.getDate() + 7);
+        const nextMondayStr = format(nextMondayDate, 'yyyy-MM-dd');
 
         const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
         const activeThisWeekLogs = thisWeekLogs.filter(log => activeHabitIds.includes(log.habitId));
         const thisWeekCompleted = activeThisWeekLogs.filter(log => 
-          log.date >= startOfWeekStr && log.status === 'done'
+          log.date >= startOfWeekStr && log.date < nextMondayStr && log.status === 'done'
         ).length;
         setThisWeekCount(thisWeekCompleted);
 
         // Calculate last week's completed habits (only active habits)
-        const startOfLastWeekStr = getUserDate(profile, -new Date(today).getDay() - 7);
+        const startOfLastWeekDate = new Date(startOfWeekStr);
+        startOfLastWeekDate.setDate(startOfLastWeekDate.getDate() - 7);
+        const startOfLastWeekStr = format(startOfLastWeekDate, 'yyyy-MM-dd');
 
         const lastWeekCompleted = activeThisWeekLogs.filter(log => 
           log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
