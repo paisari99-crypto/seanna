@@ -43,30 +43,33 @@ export default function Home() {
 
         // Get active habits for today summary
         const activeHabits = await base44.entities.Habit.filter({ userId, isActive: true });
+        const activeHabitIds = activeHabits.map(h => h.id);
         setTotalActiveHabits(activeHabits.length);
 
-        // Check if user has logged any habit today
+        // Check if user has logged any habit today (only active habits)
         const today = getUserToday(profile);
         const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
-        setHasLoggedToday(todayLogs.length > 0);
+        const activeTodayLogs = todayLogs.filter(log => activeHabitIds.includes(log.habitId));
+        setHasLoggedToday(activeTodayLogs.length > 0);
 
-        // Count completed habits today
-        const completedCount = todayLogs.filter(log => log.status === 'done').length;
+        // Count completed habits today (only active habits)
+        const completedCount = activeTodayLogs.filter(log => log.status === 'done').length;
         setCompletedToday(completedCount);
 
-        // Calculate this week's completed habits
+        // Calculate this week's completed habits (only active habits)
         const startOfWeekStr = getUserDate(profile, -new Date(today).getDay());
 
         const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
-        const thisWeekCompleted = thisWeekLogs.filter(log => 
+        const activeThisWeekLogs = thisWeekLogs.filter(log => activeHabitIds.includes(log.habitId));
+        const thisWeekCompleted = activeThisWeekLogs.filter(log => 
           log.date >= startOfWeekStr && log.status === 'done'
         ).length;
         setThisWeekCount(thisWeekCompleted);
 
-        // Calculate last week's completed habits
+        // Calculate last week's completed habits (only active habits)
         const startOfLastWeekStr = getUserDate(profile, -new Date(today).getDay() - 7);
 
-        const lastWeekCompleted = thisWeekLogs.filter(log => 
+        const lastWeekCompleted = activeThisWeekLogs.filter(log => 
           log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
         ).length;
         setLastWeekCount(lastWeekCompleted);
