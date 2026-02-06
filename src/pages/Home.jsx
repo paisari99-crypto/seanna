@@ -34,8 +34,10 @@ export default function Home() {
           return;
         }
 
+        const profile = userProfiles[0];
+        const userId = profile.id;
+        
         // Check if user has any habits
-        const userId = userProfiles[0].id;
         const habits = await base44.entities.Habit.filter({ userId });
         setHabitCount(habits.length);
 
@@ -44,7 +46,7 @@ export default function Home() {
         setTotalActiveHabits(activeHabits.length);
 
         // Check if user has logged any habit today
-        const today = await getUserToday();
+        const today = getUserToday(profile);
         const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
         setHasLoggedToday(todayLogs.length > 0);
 
@@ -53,7 +55,7 @@ export default function Home() {
         setCompletedToday(completedCount);
 
         // Calculate this week's completed habits
-        const startOfWeekStr = await getUserDate(-new Date(today).getDay());
+        const startOfWeekStr = getUserDate(profile, -new Date(today).getDay());
 
         const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
         const thisWeekCompleted = thisWeekLogs.filter(log => 
@@ -62,7 +64,7 @@ export default function Home() {
         setThisWeekCount(thisWeekCompleted);
 
         // Calculate last week's completed habits
-        const startOfLastWeekStr = await getUserDate(-new Date(today).getDay() - 7);
+        const startOfLastWeekStr = getUserDate(profile, -new Date(today).getDay() - 7);
 
         const lastWeekCompleted = thisWeekLogs.filter(log => 
           log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
