@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Plus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 
-export default function Habits() {
+export default function ArchivedHabits() {
+  const navigate = useNavigate();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,14 +18,14 @@ export default function Habits() {
         const userId = userProfile[0]?.id;
         
         if (userId) {
-          const activeHabits = await base44.entities.Habit.filter(
-            { userId, isActive: true },
+          const archivedHabits = await base44.entities.Habit.filter(
+            { userId, isActive: false },
             '-created_date'
           );
-          setHabits(activeHabits);
+          setHabits(archivedHabits);
         }
       } catch (error) {
-        console.error('Error loading habits:', error);
+        console.error('Error loading archived habits:', error);
       } finally {
         setLoading(false);
       }
@@ -50,42 +51,27 @@ export default function Habits() {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>
-              Habits
-            </h1>
-            <p className="text-sm mb-2" style={{ color: '#9AA3B2' }}>
-              Small systems. Real change.
-            </p>
-            <Link
-              to={createPageUrl('ArchivedHabits')}
-              className="text-xs"
-              style={{ color: '#9AA3B2' }}
-            >
-              View archived habits
-            </Link>
-          </div>
-          <Link
-            to={createPageUrl('HabitNew')}
-            className="px-4 py-2 flex items-center gap-2"
-            style={{
-              backgroundColor: '#C9A227',
-              color: '#0F1115',
-              borderRadius: '18px',
-              fontWeight: 600
-            }}
-          >
-            <Plus size={18} />
-            New
-          </Link>
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>
+            Archived Habits
+          </h1>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>
+            Your archived habits are here.
+          </p>
         </div>
 
         {loading ? (
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
         ) : habits.length === 0 ? (
           <div className="text-center py-12">
-            <p style={{ color: '#9AA3B2' }}>No active habits yet. Tap New to create one.</p>
+            <p style={{ color: '#9AA3B2' }}>No archived habits yet.</p>
           </div>
         ) : (
           <div className="space-y-3">

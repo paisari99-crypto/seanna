@@ -68,6 +68,7 @@ import JournalNew from './pages/JournalNew';
 import Onboarding from './pages/Onboarding';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
+import ArchivedHabits from './pages/ArchivedHabits';
 
 
 export const PAGES = {
@@ -92,6 +93,7 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Privacy": Privacy,
     "Settings": Settings,
+    "ArchivedHabits": ArchivedHabits,
 }
 
 export const pagesConfig = {
