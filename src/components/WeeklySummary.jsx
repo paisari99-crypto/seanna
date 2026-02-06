@@ -5,20 +5,17 @@ export default function WeeklySummary({ thisWeekCount, lastWeekCount }) {
 
   return (
     <div
-      className="p-6 mb-6"
+      className="p-3 mb-4"
       style={{
-        backgroundColor: '#1A1D24',
+        backgroundColor: 'rgba(26, 29, 36, 0.4)',
         borderRadius: '18px'
       }}
     >
-      <h3 className="text-lg font-semibold mb-2" style={{ color: '#E8EAF0' }}>
-        This week
-      </h3>
-      <p className="text-sm" style={{ color: '#9AA3B2' }}>
-        You completed {thisWeekCount} habit{thisWeekCount !== 1 ? 's' : ''} this week.
+      <p className="text-xs" style={{ color: '#9AA3B2' }}>
+        {thisWeekCount} habit{thisWeekCount !== 1 ? 's' : ''} completed this week
       </p>
       {hasImprovement && (
-        <p className="text-xs mt-1" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+        <p className="text-xs mt-0.5" style={{ color: '#9AA3B2', opacity: 0.6 }}>
           Improvement from last week
         </p>
       )}
