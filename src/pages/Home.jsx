@@ -129,6 +129,7 @@ export default function Home() {
         <TodaySummary 
           totalHabits={totalActiveHabits}
           completedToday={completedToday}
+          tomorrowHabits={totalActiveHabits}
         />
 
         <div className="grid grid-cols-2 gap-3">
