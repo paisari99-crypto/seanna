@@ -25,6 +25,7 @@ export default function HabitDetail() {
   const [loading, setLoading] = useState(true);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [isFirstHabit, setIsFirstHabit] = useState(false);
 
   const today = format(startOfDay(new Date()), 'yyyy-MM-dd');
 
@@ -52,6 +53,10 @@ export default function HabitDetail() {
         setHabit(habits[0]);
 
         if (uid) {
+          // Check if this is the user's first habit
+          const allHabits = await base44.entities.Habit.filter({ userId: uid, isActive: true });
+          setIsFirstHabit(allHabits.length === 1);
+
           // Load today's log
           const todayLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid, date: today });
           if (todayLogs.length > 0) {
@@ -198,7 +203,8 @@ export default function HabitDetail() {
           className="p-4 mb-4"
           style={{
             backgroundColor: '#1A1D24',
-            borderRadius: '18px'
+            borderRadius: '18px',
+            border: !todayLog && isFirstHabit ? '2px solid rgba(201, 162, 39, 0.2)' : 'none'
           }}
         >
           <h2 className="text-lg font-semibold mb-1" style={{ color: '#E8EAF0' }}>
@@ -207,6 +213,12 @@ export default function HabitDetail() {
           <p className="text-sm mb-4" style={{ color: '#9AA3B2' }}>
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
+          
+          {!todayLog && isFirstHabit && (
+            <p className="text-sm mb-3" style={{ color: '#9AA3B2', fontStyle: 'italic' }}>
+              Mark today's result to activate your system.
+            </p>
+          )}
           
           <div className="flex gap-2">
             <button
