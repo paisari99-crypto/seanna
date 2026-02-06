@@ -31,11 +31,10 @@ export default function HabitDetail() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [today, setToday] = useState('');
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
-      const todayDate = await getUserToday();
-      setToday(todayDate);
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
@@ -47,8 +46,13 @@ export default function HabitDetail() {
 
         const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-        const uid = userProfiles[0]?.id;
+        const profile = userProfiles[0];
+        const uid = profile?.id;
         setUserId(uid);
+        setUserProfile(profile);
+
+        const todayDate = getUserToday(profile);
+        setToday(todayDate);
 
         const habits = await base44.entities.Habit.filter({ id });
         if (habits.length === 0) {
@@ -63,13 +67,13 @@ export default function HabitDetail() {
           setIsFirstHabit(allHabits.length === 1);
 
           // Load today's log
-          const todayLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid, date: today });
+          const todayLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid, date: todayDate });
           if (todayLogs.length > 0) {
             setTodayLog(todayLogs[0]);
           }
 
           // Load last 14 days of logs
-          const fourteenDaysAgo = await getUserDate(-13);
+          const fourteenDaysAgo = getUserDate(profile, -13);
           const allLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
           const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= todayDate);
           setRecentLogs(filteredLogs);
@@ -104,7 +108,7 @@ export default function HabitDetail() {
         
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
-        const todayDate = await getUserToday();
+        const todayDate = getUserToday(userProfile);
         const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
         setCurrentStreak(current);
@@ -127,7 +131,7 @@ export default function HabitDetail() {
         
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
-        const todayDate = await getUserToday();
+        const todayDate = getUserToday(userProfile);
         const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
         setCurrentStreak(current);

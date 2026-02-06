@@ -20,8 +20,9 @@ export default function Habits() {
     const loadData = async () => {
       try {
         const currentUser = await base44.auth.me();
-        const userProfile = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-        const userId = userProfile[0]?.id;
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const profile = userProfiles[0];
+        const userId = profile?.id;
         
         if (userId) {
           const activeHabits = await base44.entities.Habit.filter(
@@ -33,7 +34,7 @@ export default function Habits() {
           // Calculate streaks and check today's completion for each habit
           const streaks = {};
           const completedToday = {};
-          const today = await getUserToday();
+          const today = getUserToday(profile);
           
           for (const habit of activeHabits) {
             const logs = await base44.entities.HabitLog.filter(

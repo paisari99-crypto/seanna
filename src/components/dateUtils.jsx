@@ -1,36 +1,18 @@
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { base44 } from '@/api/base44Client';
-
-let cachedTimezone = null;
 
 /**
  * Get the user's timezone from their profile
  */
-export const getUserTimezone = async () => {
-  if (cachedTimezone) return cachedTimezone;
-  
-  try {
-    const currentUser = await base44.auth.me();
-    const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-    
-    if (userProfiles.length > 0 && userProfiles[0].timezone) {
-      cachedTimezone = userProfiles[0].timezone;
-      return cachedTimezone;
-    }
-  } catch (error) {
-    console.error('Error fetching user timezone:', error);
-  }
-  
-  // Fallback to Europe/London (default in UserProfile schema)
-  return 'Europe/London';
+export const getUserTimezone = (userProfile) => {
+  return userProfile?.timezone || 'UTC';
 };
 
 /**
  * Get today's date in the user's timezone as YYYY-MM-DD
  */
-export const getUserToday = async () => {
-  const timezone = await getUserTimezone();
+export const getUserToday = (userProfile) => {
+  const timezone = getUserTimezone(userProfile);
   const now = new Date();
   const zonedDate = toZonedTime(now, timezone);
   return format(zonedDate, 'yyyy-MM-dd');
@@ -40,8 +22,8 @@ export const getUserToday = async () => {
  * Get a date relative to today in the user's timezone
  * @param {number} daysOffset - positive for future, negative for past
  */
-export const getUserDate = async (daysOffset = 0) => {
-  const timezone = await getUserTimezone();
+export const getUserDate = (userProfile, daysOffset = 0) => {
+  const timezone = getUserTimezone(userProfile);
   const now = new Date();
   const zonedDate = toZonedTime(now, timezone);
   zonedDate.setDate(zonedDate.getDate() + daysOffset);
@@ -49,8 +31,10 @@ export const getUserDate = async (daysOffset = 0) => {
 };
 
 /**
- * Reset cached timezone (call when user profile changes)
+ * Format a date in the user's timezone
  */
-export const resetTimezoneCache = () => {
-  cachedTimezone = null;
+export const formatUserDate = (date, userProfile, formatString = 'EEEE, MMMM d, yyyy') => {
+  const timezone = getUserTimezone(userProfile);
+  const zonedDate = toZonedTime(date, timezone);
+  return format(zonedDate, formatString);
 };
