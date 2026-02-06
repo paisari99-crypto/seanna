@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
-import { getUserToday, getUserDate, getStartOfWeek } from '../components/dateUtils';
+import { getUserToday, getStartOfWeek } from '../components/dateUtils';
 import { format } from 'date-fns';
 
 export default function Home() {
@@ -59,7 +59,7 @@ export default function Home() {
 
         // Calculate this week's completed habits (only active habits)
         // Week starts Monday 00:00, ends Sunday 23:59:59 in user's timezone
-        const startOfWeekStr = getStartOfWeek(today);
+        const startOfWeekStr = getStartOfWeek(profile);
         const nextMondayDate = new Date(startOfWeekStr);
         nextMondayDate.setDate(nextMondayDate.getDate() + 7);
         const nextMondayStr = format(nextMondayDate, 'yyyy-MM-dd');

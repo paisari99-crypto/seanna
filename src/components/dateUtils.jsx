@@ -119,14 +119,36 @@ export const calculateBestStreak = (logs) => {
 
 /**
  * Get the start of the current week (Monday) in user's timezone
- * @param {string} dateStr - YYYY-MM-DD date string
+ * @param {object} userProfile - User profile with timezone
+ * @param {Date} referenceDate - Optional reference date (defaults to now)
  * @returns {string} YYYY-MM-DD for the Monday of that week
  */
-export const getStartOfWeek = (dateStr) => {
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+export const getStartOfWeek = (userProfile, referenceDate = null) => {
+  const timezone = getUserTimezone(userProfile);
+  const now = referenceDate || new Date();
+  const zonedDate = toZonedTime(now, timezone);
+  
+  const dayOfWeek = zonedDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
   const daysToMonday = (dayOfWeek + 6) % 7; // Days to go back to Monday
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - daysToMonday);
-  return format(monday, 'yyyy-MM-dd');
+  zonedDate.setDate(zonedDate.getDate() - daysToMonday);
+  
+  return format(zonedDate, 'yyyy-MM-dd');
+};
+
+/**
+ * Get the end of the current week (Sunday) in user's timezone
+ * @param {object} userProfile - User profile with timezone
+ * @param {Date} referenceDate - Optional reference date (defaults to now)
+ * @returns {string} YYYY-MM-DD for the Sunday of that week
+ */
+export const getEndOfWeek = (userProfile, referenceDate = null) => {
+  const timezone = getUserTimezone(userProfile);
+  const now = referenceDate || new Date();
+  const zonedDate = toZonedTime(now, timezone);
+  
+  const dayOfWeek = zonedDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+  const daysToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  zonedDate.setDate(zonedDate.getDate() + daysToSunday);
+  
+  return format(zonedDate, 'yyyy-MM-dd');
 };
