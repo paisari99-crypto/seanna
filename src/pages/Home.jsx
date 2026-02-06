@@ -6,6 +6,7 @@ import { BookOpen, Target, GitBranch, TrendingUp, Settings } from 'lucide-react'
 import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
+import WeeklySummary from '../components/WeeklySummary';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function Home() {
   const [hasLoggedToday, setHasLoggedToday] = useState(false);
   const [totalActiveHabits, setTotalActiveHabits] = useState(0);
   const [completedToday, setCompletedToday] = useState(0);
+  const [thisWeekCount, setThisWeekCount] = useState(0);
+  const [lastWeekCount, setLastWeekCount] = useState(0);
   
   // Check if just completed a habit
   const urlParams = new URLSearchParams(window.location.search);
@@ -47,6 +50,29 @@ export default function Home() {
         // Count completed habits today
         const completedCount = todayLogs.filter(log => log.status === 'done').length;
         setCompletedToday(completedCount);
+
+        // Calculate this week's completed habits
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+
+        const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
+        const thisWeekCompleted = thisWeekLogs.filter(log => 
+          log.date >= startOfWeekStr && log.status === 'done'
+        ).length;
+        setThisWeekCount(thisWeekCompleted);
+
+        // Calculate last week's completed habits
+        const startOfLastWeek = new Date(startOfWeek);
+        startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+        const startOfLastWeekStr = startOfLastWeek.toISOString().split('T')[0];
+
+        const lastWeekCompleted = thisWeekLogs.filter(log => 
+          log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
+        ).length;
+        setLastWeekCount(lastWeekCompleted);
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
@@ -130,6 +156,11 @@ export default function Home() {
           totalHabits={totalActiveHabits}
           completedToday={completedToday}
           tomorrowHabits={totalActiveHabits}
+        />
+
+        <WeeklySummary 
+          thisWeekCount={thisWeekCount}
+          lastWeekCount={lastWeekCount}
         />
 
         <div className="grid grid-cols-2 gap-3">
