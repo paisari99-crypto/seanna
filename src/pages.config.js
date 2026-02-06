@@ -59,6 +59,10 @@ import HabitNew from './pages/HabitNew';
 import HabitDetail from './pages/HabitDetail';
 import DecisionNew from './pages/DecisionNew';
 import DecisionDetail from './pages/DecisionDetail';
+import DecisionOptionNew from './pages/DecisionOptionNew';
+import DecisionCriterionNew from './pages/DecisionCriterionNew';
+import DecisionOptionDetail from './pages/DecisionOptionDetail';
+import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
 
 
 export const PAGES = {
@@ -74,6 +78,10 @@ export const PAGES = {
     "HabitDetail": HabitDetail,
     "DecisionNew": DecisionNew,
     "DecisionDetail": DecisionDetail,
+    "DecisionOptionNew": DecisionOptionNew,
+    "DecisionCriterionNew": DecisionCriterionNew,
+    "DecisionOptionDetail": DecisionOptionDetail,
+    "DecisionCriterionDetail": DecisionCriterionDetail,
 }
 
 export const pagesConfig = {
