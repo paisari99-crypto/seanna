@@ -76,8 +76,15 @@ export default function DecisionCriterionNew() {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
         <h1 className="text-3xl font-semibold mb-6" style={{ color: '#E8EAF0' }}>
-          New Criterion
+          New criterion
         </h1>
 
         <div className="space-y-6">

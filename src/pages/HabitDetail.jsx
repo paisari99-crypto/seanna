@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Archive } from 'lucide-react';
+import { Archive, ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format, startOfDay, subDays } from 'date-fns';
 import {
@@ -160,6 +160,13 @@ export default function HabitDetail() {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 p-2"
+          style={{ color: '#9AA3B2' }}
+        >
+          <ArrowLeft size={24} />
+        </button>
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <h1 className="text-3xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
