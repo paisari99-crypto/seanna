@@ -125,7 +125,8 @@ export default function HabitDetail() {
       padding: '12px',
       borderRadius: '18px',
       fontWeight: 600,
-      border: '2px solid transparent'
+      cursor: 'pointer',
+      transition: 'all 0.2s ease'
     };
 
     if (isActive) {
@@ -133,14 +134,16 @@ export default function HabitDetail() {
         ...baseStyle,
         backgroundColor: '#C9A227',
         color: '#0F1115',
-        borderColor: '#C9A227'
+        border: 'none',
+        boxShadow: '0 2px 8px rgba(201, 162, 39, 0.3)'
       };
     }
 
     return {
       ...baseStyle,
-      backgroundColor: '#1A1D24',
-      color: '#E8EAF0'
+      backgroundColor: 'transparent',
+      color: '#E8EAF0',
+      border: '2px solid #2A2F3A'
     };
   };
 
@@ -209,18 +212,78 @@ export default function HabitDetail() {
             <button
               onClick={() => handleStatusClick('done')}
               style={getStatusStyle('done', todayLog?.status === 'done')}
+              onMouseEnter={(e) => {
+                if (todayLog?.status !== 'done') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (todayLog?.status !== 'done') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (todayLog?.status !== 'done') {
+                  e.currentTarget.style.backgroundColor = '#1F232B';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (todayLog?.status !== 'done') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
             >
               Done
             </button>
             <button
               onClick={() => handleStatusClick('skipped')}
               style={getStatusStyle('skipped', todayLog?.status === 'skipped')}
+              onMouseEnter={(e) => {
+                if (todayLog?.status !== 'skipped') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (todayLog?.status !== 'skipped') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (todayLog?.status !== 'skipped') {
+                  e.currentTarget.style.backgroundColor = '#1F232B';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (todayLog?.status !== 'skipped') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
             >
               Skipped
             </button>
             <button
               onClick={() => handleStatusClick('missed')}
               style={getStatusStyle('missed', todayLog?.status === 'missed')}
+              onMouseEnter={(e) => {
+                if (todayLog?.status !== 'missed') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (todayLog?.status !== 'missed') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (todayLog?.status !== 'missed') {
+                  e.currentTarget.style.backgroundColor = '#1F232B';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (todayLog?.status !== 'missed') {
+                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                }
+              }}
             >
               Missed
             </button>
