@@ -70,9 +70,17 @@ export default function HabitNew() {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-3xl font-semibold mb-6" style={{ color: '#E8EAF0' }}>
+        <h1 className="text-3xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
           New habit
         </h1>
+        
+        {isOnboarding && (
+          <p className="text-sm mb-6" style={{ color: '#9AA3B2' }}>
+            You can change this later. Start simple.
+          </p>
+        )}
+        
+        {!isOnboarding && <div className="mb-4"></div>}
 
         <div className="space-y-6">
           <div>
