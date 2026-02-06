@@ -10,6 +10,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [habitCount, setHabitCount] = useState(0);
+  const [hasLoggedToday, setHasLoggedToday] = useState(false);
   
   // Developer testing override
   const developerPreviewGuidance = true;
@@ -29,6 +30,11 @@ export default function Home() {
         const userId = userProfiles[0].id;
         const habits = await base44.entities.Habit.filter({ userId });
         setHabitCount(habits.length);
+
+        // Check if user has logged any habit today
+        const today = new Date().toISOString().split('T')[0];
+        const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
+        setHasLoggedToday(todayLogs.length > 0);
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
@@ -101,7 +107,7 @@ export default function Home() {
       </div>
 
       <div className="px-4 pb-8">
-        <GuidanceCard habitCount={habitCount} developerPreview={developerPreviewGuidance} />
+        <GuidanceCard habitCount={habitCount} hasLoggedToday={hasLoggedToday} developerPreview={developerPreviewGuidance} />
 
         <div className="grid grid-cols-2 gap-3">
           {cards.map((card) => {
