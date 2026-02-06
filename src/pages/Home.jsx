@@ -8,6 +8,7 @@ import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
 import { getUserToday, getUserDate, getStartOfWeek } from '../components/dateUtils';
+import { format } from 'date-fns';
 
 export default function Home() {
   const navigate = useNavigate();
