@@ -73,7 +73,7 @@ export default function Journal() {
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
         ) : entries.length === 0 ? (
           <div className="text-center py-12">
-            <p style={{ color: '#9AA3B2' }}>No entries yet. Tap New to start.</p>
+            <p style={{ color: '#9AA3B2' }}>No entries yet. Tap New to write your first entry.</p>
           </div>
         ) : (
           <div className="space-y-3">

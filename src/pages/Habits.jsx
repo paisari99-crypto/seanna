@@ -78,7 +78,7 @@ export default function Habits() {
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
         ) : habits.length === 0 ? (
           <div className="text-center py-12">
-            <p style={{ color: '#9AA3B2' }}>No habits yet. Tap New to start.</p>
+            <p style={{ color: '#9AA3B2' }}>No active habits yet. Tap New to create one.</p>
           </div>
         ) : (
           <div className="space-y-3">

@@ -209,6 +209,10 @@ Provide a structured weekly review in the following JSON format:
 
         {loading ? (
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
+        ) : !userProfile ? (
+          <div className="text-center py-12">
+            <p style={{ color: '#9AA3B2' }}>Insights will appear after you start using Seanna.</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {/* Card 1: Journal cadence */}

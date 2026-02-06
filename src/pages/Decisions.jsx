@@ -70,7 +70,7 @@ export default function Decisions() {
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
         ) : decisions.length === 0 ? (
           <div className="text-center py-12">
-            <p style={{ color: '#9AA3B2' }}>No decisions yet. Tap New to start.</p>
+            <p style={{ color: '#9AA3B2' }}>No decisions yet. Tap New to start one.</p>
           </div>
         ) : (
           <div className="space-y-3">
