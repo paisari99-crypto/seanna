@@ -7,6 +7,7 @@ import BottomNav from '../components/BottomNav';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
+  const [habitStreaks, setHabitStreaks] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +23,17 @@ export default function Habits() {
             '-created_date'
           );
           setHabits(activeHabits);
+
+          // Calculate streaks for each habit
+          const streaks = {};
+          for (const habit of activeHabits) {
+            const logs = await base44.entities.HabitLog.filter(
+              { habitId: habit.id, userId },
+              '-date'
+            );
+            streaks[habit.id] = calculateStreak(logs);
+          }
+          setHabitStreaks(streaks);
         }
       } catch (error) {
         console.error('Error loading habits:', error);
@@ -32,6 +44,50 @@ export default function Habits() {
     
     loadData();
   }, []);
+
+  const calculateStreak = (logs) => {
+    if (logs.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Sort logs by date descending
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Check if the most recent log is today or yesterday with status "done"
+    const mostRecentLog = sortedLogs[0];
+    const mostRecentDate = new Date(mostRecentLog.date);
+    mostRecentDate.setHours(0, 0, 0, 0);
+
+    if (mostRecentDate < yesterday) {
+      return 0; // Streak broken if last log is before yesterday
+    }
+
+    if (mostRecentLog.status !== 'done') {
+      return 0; // Streak broken if most recent is not "done"
+    }
+
+    // Count consecutive "done" days backwards from most recent
+    let streak = 0;
+    let currentDate = new Date(mostRecentDate);
+
+    for (const log of sortedLogs) {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+
+      if (logDate.getTime() === currentDate.getTime() && log.status === 'done') {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else if (logDate.getTime() < currentDate.getTime()) {
+        // Gap in dates or non-done status, streak ends
+        break;
+      }
+    }
+
+    return streak;
+  };
 
   const getScheduleLabel = (type) => {
     const labels = {
@@ -117,6 +173,11 @@ export default function Habits() {
                       {getScheduleLabel(habit.scheduleType)}
                     </span>
                   </div>
+                  <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                    {habitStreaks[habit.id] > 0 
+                      ? `Streak: ${habitStreaks[habit.id]} day${habitStreaks[habit.id] !== 1 ? 's' : ''}`
+                      : 'No active streak'}
+                  </p>
                   {habit.description && (
                     <p className="text-sm" style={{ color: '#9AA3B2' }}>
                       {truncateDescription(habit.description)}
