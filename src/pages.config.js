@@ -47,41 +47,43 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Home from './pages/Home';
-import Journal from './pages/Journal';
-import Habits from './pages/Habits';
+import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
+import DecisionCriterionNew from './pages/DecisionCriterionNew';
+import DecisionDetail from './pages/DecisionDetail';
+import DecisionNew from './pages/DecisionNew';
+import DecisionOptionDetail from './pages/DecisionOptionDetail';
+import DecisionOptionNew from './pages/DecisionOptionNew';
 import Decisions from './pages/Decisions';
+import HabitDetail from './pages/HabitDetail';
+import HabitNew from './pages/HabitNew';
+import Habits from './pages/Habits';
+import Home from './pages/Home';
 import Insights from './pages/Insights';
-import JournalNew from './pages/JournalNew';
+import Journal from './pages/Journal';
 import JournalDetail from './pages/JournalDetail';
 import JournalEdit from './pages/JournalEdit';
-import HabitNew from './pages/HabitNew';
-import HabitDetail from './pages/HabitDetail';
-import DecisionNew from './pages/DecisionNew';
-import DecisionDetail from './pages/DecisionDetail';
-import DecisionOptionNew from './pages/DecisionOptionNew';
-import DecisionCriterionNew from './pages/DecisionCriterionNew';
-import DecisionOptionDetail from './pages/DecisionOptionDetail';
-import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
+import JournalNew from './pages/JournalNew';
+import Settings from './pages/Settings';
 
 
 export const PAGES = {
-    "Home": Home,
-    "Journal": Journal,
-    "Habits": Habits,
+    "DecisionCriterionDetail": DecisionCriterionDetail,
+    "DecisionCriterionNew": DecisionCriterionNew,
+    "DecisionDetail": DecisionDetail,
+    "DecisionNew": DecisionNew,
+    "DecisionOptionDetail": DecisionOptionDetail,
+    "DecisionOptionNew": DecisionOptionNew,
     "Decisions": Decisions,
+    "HabitDetail": HabitDetail,
+    "HabitNew": HabitNew,
+    "Habits": Habits,
+    "Home": Home,
     "Insights": Insights,
-    "JournalNew": JournalNew,
+    "Journal": Journal,
     "JournalDetail": JournalDetail,
     "JournalEdit": JournalEdit,
-    "HabitNew": HabitNew,
-    "HabitDetail": HabitDetail,
-    "DecisionNew": DecisionNew,
-    "DecisionDetail": DecisionDetail,
-    "DecisionOptionNew": DecisionOptionNew,
-    "DecisionCriterionNew": DecisionCriterionNew,
-    "DecisionOptionDetail": DecisionOptionDetail,
-    "DecisionCriterionDetail": DecisionCriterionDetail,
+    "JournalNew": JournalNew,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
