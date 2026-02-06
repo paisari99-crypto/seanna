@@ -8,17 +8,23 @@ import BottomNav from '../components/BottomNav';
 export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [hasHabits, setHasHabits] = useState(true);
 
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
         const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-        
+
         if (userProfiles.length === 0 || !userProfiles[0].displayName) {
           navigate(createPageUrl('Onboarding'));
           return;
         }
+
+        // Check if user has any habits
+        const userId = userProfiles[0].id;
+        const habits = await base44.entities.Habit.filter({ userId });
+        setHasHabits(habits.length > 0);
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
