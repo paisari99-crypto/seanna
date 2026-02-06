@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [habitStreaks, setHabitStreaks] = useState({});
   const [habitCompletedToday, setHabitCompletedToday] = useState({});
   const [loading, setLoading] = useState(true);
+  const [duplicateGroups, setDuplicateGroups] = useState([]);
+  const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -43,6 +46,10 @@ export default function Habits() {
           }
           setHabitStreaks(streaks);
           setHabitCompletedToday(completedToday);
+          
+          // Detect duplicate habits
+          const duplicates = findDuplicateHabits(activeHabits);
+          setDuplicateGroups(duplicates);
         }
       } catch (error) {
         console.error('Error loading habits:', error);
@@ -53,6 +60,80 @@ export default function Habits() {
     
     loadData();
   }, []);
+
+  const findDuplicateHabits = (habits) => {
+    const groups = [];
+    const processed = new Set();
+    
+    for (let i = 0; i < habits.length; i++) {
+      if (processed.has(i)) continue;
+      
+      const group = [habits[i]];
+      processed.add(i);
+      
+      for (let j = i + 1; j < habits.length; j++) {
+        if (processed.has(j)) continue;
+        
+        if (areSimilar(habits[i].name, habits[j].name)) {
+          group.push(habits[j]);
+          processed.add(j);
+        }
+      }
+      
+      if (group.length > 1) {
+        groups.push(group);
+      }
+    }
+    
+    return groups;
+  };
+
+  const areSimilar = (name1, name2) => {
+    const n1 = name1.toLowerCase().trim();
+    const n2 = name2.toLowerCase().trim();
+    
+    // Exact match
+    if (n1 === n2) return true;
+    
+    // Calculate similarity
+    const longer = n1.length > n2.length ? n1 : n2;
+    const shorter = n1.length > n2.length ? n2 : n1;
+    
+    if (longer.length === 0) return true;
+    
+    const editDistance = levenshteinDistance(n1, n2);
+    const similarity = (longer.length - editDistance) / longer.length;
+    
+    return similarity > 0.8;
+  };
+
+  const levenshteinDistance = (str1, str2) => {
+    const matrix = [];
+    
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    
+    return matrix[str2.length][str1.length];
+  };
 
   const calculateStreak = (logs) => {
     if (logs.length === 0) return 0;
@@ -199,6 +280,36 @@ export default function Habits() {
           </Link>
         </div>
 
+        {!loading && duplicateGroups.length > 0 && (
+          <div
+            className="mb-4 p-3 flex items-start gap-3"
+            style={{
+              backgroundColor: 'rgba(26, 29, 36, 0.6)',
+              borderRadius: '18px',
+              border: '1px solid rgba(154, 163, 178, 0.1)'
+            }}
+          >
+            <AlertCircle size={16} style={{ color: '#9AA3B2', marginTop: '2px', flexShrink: 0 }} />
+            <div className="flex-1">
+              <p className="text-xs mb-2" style={{ color: '#9AA3B2' }}>
+                You have similar habits. Consider merging or renaming.
+              </p>
+              <button
+                onClick={() => setShowDuplicatesDialog(true)}
+                className="text-xs px-3 py-1"
+                style={{
+                  color: '#C9A227',
+                  backgroundColor: 'rgba(201, 162, 39, 0.1)',
+                  borderRadius: '12px',
+                  fontWeight: 500
+                }}
+              >
+                Review habits
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <p style={{ color: '#9AA3B2' }}>Loading...</p>
         ) : habits.length === 0 ? (
@@ -238,6 +349,12 @@ export default function Habits() {
           </div>
         )}
       </div>
+      
+      <DuplicateHabitsDialog
+        open={showDuplicatesDialog}
+        onOpenChange={setShowDuplicatesDialog}
+        duplicates={duplicateGroups}
+      />
       
       <BottomNav />
     </div>
