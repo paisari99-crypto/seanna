@@ -103,6 +103,17 @@ export default function DecisionDetail() {
     }
   };
 
+  const getImportanceLabel = (weight) => {
+    const labels = {
+      1: 'Low',
+      2: 'Medium-low',
+      3: 'Medium',
+      4: 'High',
+      5: 'Critical'
+    };
+    return labels[weight] || 'Medium';
+  };
+
   const calculateResults = () => {
     const results = options.map(option => {
       let total = 0;
@@ -258,7 +269,7 @@ export default function DecisionDetail() {
                         borderRadius: '12px'
                       }}
                     >
-                      Weight: {criterion.weight}
+                      Importance: {getImportanceLabel(criterion.weight)}
                     </span>
                   </div>
                 </button>
@@ -299,7 +310,7 @@ export default function DecisionDetail() {
                         borderRadius: '12px'
                       }}
                     >
-                      Weight: {criterion.weight}
+                      Importance: {getImportanceLabel(criterion.weight)}
                     </span>
                   </div>
                   <div className="space-y-4">

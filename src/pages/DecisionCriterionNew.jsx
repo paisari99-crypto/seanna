@@ -5,23 +5,26 @@ import { base44 } from '@/api/base44Client';
 import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function DecisionCriterionNew() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [weight, setWeight] = useState('1');
+  const [importance, setImportance] = useState('medium');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const importanceToWeight = {
+    'low': 1,
+    'medium-low': 2,
+    'medium': 3,
+    'high': 4,
+    'critical': 5
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError('Name is required');
-      return;
-    }
-
-    const weightNum = parseFloat(weight);
-    if (isNaN(weightNum) || weightNum <= 0) {
-      setError('Weight must be a positive number');
       return;
     }
 
@@ -52,7 +55,7 @@ export default function DecisionCriterionNew() {
         decisionId,
         userId,
         name: name.trim(),
-        weight: weightNum
+        weight: importanceToWeight[importance]
       });
 
       navigate(`${createPageUrl('DecisionDetail')}?id=${decisionId}`);
@@ -104,22 +107,20 @@ export default function DecisionCriterionNew() {
 
           <div>
             <label className="block text-sm mb-2" style={{ color: '#9AA3B2' }}>
-              Weight
+              Importance
             </label>
-            <Input
-              type="number"
-              placeholder="1"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              step="0.1"
-              min="0.1"
-              style={{
-                backgroundColor: '#1A1D24',
-                borderColor: '#1A1D24',
-                color: '#E8EAF0',
-                borderRadius: '18px'
-              }}
-            />
+            <Select value={importance} onValueChange={setImportance}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low importance</SelectItem>
+                <SelectItem value="medium-low">Medium-low importance</SelectItem>
+                <SelectItem value="medium">Medium importance</SelectItem>
+                <SelectItem value="high">High importance</SelectItem>
+                <SelectItem value="critical">Critical importance</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {error && (
