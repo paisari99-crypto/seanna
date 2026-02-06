@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format, startOfDay, subDays } from 'date-fns';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,6 +92,9 @@ export default function HabitDetail() {
         // Update recent logs
         setRecentLogs(prev => prev.map(log => log.id === updated.id ? updated : log));
       } else {
+        // Check if this is the first habit log ever
+        const isFirstLogEver = recentLogs.length === 0;
+        
         // Create new log
         const newLog = await base44.entities.HabitLog.create({
           habitId: habit.id,
@@ -102,6 +106,14 @@ export default function HabitDetail() {
         
         // Add to recent logs
         setRecentLogs(prev => [newLog, ...prev]);
+        
+        // Show success toast and navigate for first-time users
+        if (isFirstLogEver) {
+          toast.success('First step completed.');
+          setTimeout(() => {
+            navigate(createPageUrl('Home'));
+          }, 2000);
+        }
       }
     } catch (error) {
       console.error('Error updating habit log:', error);
