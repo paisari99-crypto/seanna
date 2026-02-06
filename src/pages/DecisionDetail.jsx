@@ -5,12 +5,15 @@ import { base44 } from '@/api/base44Client';
 import { Plus } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format } from 'date-fns';
+import { Slider } from '@/components/ui/slider';
 
 export default function DecisionDetail() {
   const navigate = useNavigate();
   const [decision, setDecision] = useState(null);
   const [options, setOptions] = useState([]);
   const [criteria, setCriteria] = useState([]);
+  const [scores, setScores] = useState({});
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +35,11 @@ export default function DecisionDetail() {
         
         setDecision(decisions[0]);
 
+        const currentUser = await base44.auth.me();
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const currentUserId = userProfiles[0]?.id;
+        setUserId(currentUserId);
+
         const decisionOptions = await base44.entities.DecisionOption.filter(
           { decisionId: id },
           '-created_date'
@@ -43,6 +51,14 @@ export default function DecisionDetail() {
           '-created_date'
         );
         setCriteria(decisionCriteria);
+
+        const decisionScores = await base44.entities.DecisionScore.filter({ decisionId: id });
+        const scoresMap = {};
+        decisionScores.forEach(score => {
+          const key = `${score.optionId}-${score.criterionId}`;
+          scoresMap[key] = score;
+        });
+        setScores(scoresMap);
       } catch (error) {
         console.error('Error loading decision:', error);
       } finally {
@@ -57,6 +73,50 @@ export default function DecisionDetail() {
     if (!notes) return '';
     return notes.length > 60 ? notes.substring(0, 60) + '...' : notes;
   };
+
+  const handleScoreChange = async (optionId, criterionId, newScore) => {
+    const key = `${optionId}-${criterionId}`;
+    const existingScore = scores[key];
+
+    try {
+      if (existingScore) {
+        await base44.entities.DecisionScore.update(existingScore.id, { score: newScore });
+        setScores(prev => ({
+          ...prev,
+          [key]: { ...existingScore, score: newScore }
+        }));
+      } else {
+        const newScoreRecord = await base44.entities.DecisionScore.create({
+          decisionId: decision.id,
+          optionId,
+          criterionId,
+          userId,
+          score: newScore
+        });
+        setScores(prev => ({
+          ...prev,
+          [key]: newScoreRecord
+        }));
+      }
+    } catch (error) {
+      console.error('Error saving score:', error);
+    }
+  };
+
+  const calculateResults = () => {
+    const results = options.map(option => {
+      let total = 0;
+      criteria.forEach(criterion => {
+        const key = `${option.id}-${criterion.id}`;
+        const score = scores[key]?.score || 0;
+        total += score * criterion.weight;
+      });
+      return { option, total };
+    });
+    return results.sort((a, b) => b.total - a.total);
+  };
+
+  const canScore = options.length >= 2 && criteria.length > 0;
 
   if (loading) {
     return (
@@ -199,6 +259,116 @@ export default function DecisionDetail() {
             </div>
           )}
         </div>
+
+        {/* Section 4 - Scoring */}
+        <div>
+          <h2 className="text-xl font-semibold mb-3" style={{ color: '#E8EAF0' }}>
+            Scoring
+          </h2>
+          {!canScore ? (
+            <p className="text-center py-6" style={{ color: '#9AA3B2' }}>
+              Add at least 2 options and 1 criterion to score.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {criteria.map((criterion) => (
+                <div
+                  key={criterion.id}
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#1A1D24',
+                    borderRadius: '18px'
+                  }}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-base font-semibold" style={{ color: '#E8EAF0' }}>
+                      {criterion.name}
+                    </h3>
+                    <span
+                      className="px-2 py-1 text-xs"
+                      style={{
+                        backgroundColor: '#0F1115',
+                        color: '#C9A227',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      Weight: {criterion.weight}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {options.map((option) => {
+                      const key = `${option.id}-${criterion.id}`;
+                      const currentScore = scores[key]?.score || 0;
+                      return (
+                        <div key={option.id} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm" style={{ color: '#9AA3B2' }}>
+                              {option.name}
+                            </span>
+                            <span className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                              {currentScore}
+                            </span>
+                          </div>
+                          <Slider
+                            value={[currentScore]}
+                            onValueChange={(values) => handleScoreChange(option.id, criterion.id, values[0])}
+                            min={0}
+                            max={10}
+                            step={1}
+                            className="w-full"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 5 - Results */}
+        {canScore && (
+          <div>
+            <h2 className="text-xl font-semibold mb-3" style={{ color: '#E8EAF0' }}>
+              Results
+            </h2>
+            <div className="space-y-3">
+              {calculateResults().map((result, index) => (
+                <div
+                  key={result.option.id}
+                  className="p-4"
+                  style={{
+                    backgroundColor: index === 0 ? '#C9A227' : '#1A1D24',
+                    borderRadius: '18px'
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3
+                        className="text-lg font-semibold"
+                        style={{ color: index === 0 ? '#0F1115' : '#E8EAF0' }}
+                      >
+                        {index + 1}. {result.option.name}
+                      </h3>
+                      {index === 0 && (
+                        <p className="text-xs mt-1" style={{ color: '#0F1115', opacity: 0.8 }}>
+                          Best option
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className="text-2xl font-bold"
+                      style={{ color: index === 0 ? '#0F1115' : '#C9A227' }}
+                    >
+                      {result.total.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       <BottomNav />
