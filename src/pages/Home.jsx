@@ -10,6 +10,9 @@ export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [habitCount, setHabitCount] = useState(0);
+  
+  // Developer testing override
+  const developerPreviewGuidance = true;
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -98,7 +101,7 @@ export default function Home() {
       </div>
 
       <div className="px-4 pb-8">
-        <GuidanceCard habitCount={habitCount} />
+        <GuidanceCard habitCount={habitCount} developerPreview={developerPreviewGuidance} />
 
         <div className="grid grid-cols-2 gap-3">
           {cards.map((card) => {

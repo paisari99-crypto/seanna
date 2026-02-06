@@ -2,10 +2,10 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-export default function GuidanceCard({ habitCount }) {
+export default function GuidanceCard({ habitCount, developerPreview }) {
   const navigate = useNavigate();
 
-  if (habitCount > 0) {
+  if (!developerPreview && habitCount > 0) {
     return null;
   }
 
