@@ -15,9 +15,6 @@ export default function Home() {
   // Check if just completed a habit
   const urlParams = new URLSearchParams(window.location.search);
   const justCompleted = urlParams.get('justCompleted') === 'true';
-  
-  // Developer testing override
-  const developerPreviewGuidance = true;
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -115,7 +112,7 @@ export default function Home() {
           habitCount={habitCount} 
           hasLoggedToday={hasLoggedToday} 
           justCompleted={justCompleted}
-          developerPreview={developerPreviewGuidance} 
+          developerPreview={false} 
         />
 
         <div className="grid grid-cols-2 gap-3">
