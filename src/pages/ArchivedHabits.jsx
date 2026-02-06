@@ -1,14 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ArchivedHabits() {
   const navigate = useNavigate();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [habitToDelete, setHabitToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,6 +61,45 @@ export default function ArchivedHabits() {
     return desc.length > 60 ? desc.substring(0, 60) + '...' : desc;
   };
 
+  const handleRestore = async (habitId) => {
+    try {
+      await base44.entities.Habit.update(habitId, { isActive: true });
+      setHabits(prev => prev.filter(h => h.id !== habitId));
+    } catch (error) {
+      console.error('Error restoring habit:', error);
+    }
+  };
+
+  const handleDeleteClick = (habit) => {
+    setHabitToDelete(habit);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!habitToDelete) return;
+    
+    setDeleting(true);
+    try {
+      // Delete all related habit logs
+      const logs = await base44.entities.HabitLog.filter({ habitId: habitToDelete.id });
+      for (const log of logs) {
+        await base44.entities.HabitLog.delete(log.id);
+      }
+      
+      // Delete the habit
+      await base44.entities.Habit.delete(habitToDelete.id);
+      
+      // Remove from list
+      setHabits(prev => prev.filter(h => h.id !== habitToDelete.id));
+      setShowDeleteDialog(false);
+      setHabitToDelete(null);
+    } catch (error) {
+      console.error('Error deleting habit:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
@@ -76,18 +128,15 @@ export default function ArchivedHabits() {
         ) : (
           <div className="space-y-3">
             {habits.map((habit) => (
-              <Link
+              <div
                 key={habit.id}
-                to={`${createPageUrl('HabitDetail')}?id=${habit.id}`}
-                className="block"
+                className="p-4"
+                style={{
+                  backgroundColor: '#1A1D24',
+                  borderRadius: '18px'
+                }}
               >
-                <div
-                  className="p-4 transition-transform hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#1A1D24',
-                    borderRadius: '18px'
-                  }}
-                >
+                <div className="mb-3">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="text-lg font-semibold flex-1" style={{ color: '#E8EAF0' }}>
                       {habit.name}
@@ -109,11 +158,71 @@ export default function ArchivedHabits() {
                     </p>
                   )}
                 </div>
-              </Link>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRestore(habit.id)}
+                    className="flex-1 py-2 font-semibold"
+                    style={{
+                      backgroundColor: '#C9A227',
+                      color: '#0F1115',
+                      borderRadius: '18px'
+                    }}
+                  >
+                    Restore
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(habit)}
+                    className="flex-1 py-2 font-semibold"
+                    style={{
+                      backgroundColor: '#0F1115',
+                      color: '#E8EAF0',
+                      borderRadius: '18px'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent style={{ backgroundColor: '#1A1D24', borderColor: '#1A1D24' }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: '#E8EAF0' }}>
+              Permanently delete this habit?
+            </AlertDialogTitle>
+            <AlertDialogDescription style={{ color: '#9AA3B2' }}>
+              This will permanently delete this habit and all its logs. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={deleting}
+              style={{ 
+                backgroundColor: '#0F1115', 
+                color: '#E8EAF0',
+                borderRadius: '18px'
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              style={{ 
+                backgroundColor: '#C9A227', 
+                color: '#0F1115',
+                borderRadius: '18px'
+              }}
+            >
+              {deleting ? 'Deleting...' : 'Delete permanently'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <BottomNav />
     </div>
