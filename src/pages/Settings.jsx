@@ -15,6 +15,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const BUILD_TIMESTAMP = new Date().toISOString();
+
 export default function Settings() {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
@@ -25,11 +27,14 @@ export default function Settings() {
   const [exportMessage, setExportMessage] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
 
+  const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const currentUser = await base44.auth.me();
-        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email });
         
         if (userProfiles.length > 0) {
           setUserProfile(userProfiles[0]);
@@ -260,6 +265,16 @@ export default function Settings() {
               >
                 Logout
               </button>
+            </div>
+
+            {/* Diagnostic Info */}
+            <div className="mt-8 pt-4 space-y-1 text-center">
+              <p className="text-xs" style={{ color: '#9AA3B2', opacity: 0.6 }}>
+                Build: {BUILD_TIMESTAMP}
+              </p>
+              <p className="text-xs" style={{ color: '#9AA3B2', opacity: 0.6 }}>
+                Workspace: {currentUser?.email || userProfile?.displayName || 'Unknown'}
+              </p>
             </div>
           </div>
         )}
