@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, Lock } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import { getMostConsistentHabit, getMostMissedHabit, getBestWeekday } from '../components/insightUtils';
 
 export default function Insights() {
   const [metrics, setMetrics] = useState({
@@ -16,6 +17,9 @@ export default function Insights() {
   const [weeklyReview, setWeeklyReview] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mostConsistentHabit, setMostConsistentHabit] = useState(null);
+  const [mostMissedHabit, setMostMissedHabit] = useState(null);
+  const [bestWeekday, setBestWeekday] = useState(null);
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -50,6 +54,20 @@ export default function Insights() {
         const doneCount = logsLast7.filter(l => l.status === 'done').length;
         const totalTracked = logsLast7.filter(l => ['done', 'skipped', 'missed'].includes(l.status)).length;
         const habitDoneRate = totalTracked > 0 ? Math.round((doneCount / totalTracked) * 100) : 0;
+
+        // Fetch active habits and compute insights
+        const activeHabits = await base44.entities.Habit.filter({ userId, isActive: true });
+        
+        // Compute insights (non-blocking)
+        setTimeout(() => {
+          const consistent = getMostConsistentHabit(activeHabits, allHabitLogs);
+          const missed = getMostMissedHabit(activeHabits, allHabitLogs);
+          const weekday = getBestWeekday(allHabitLogs);
+          
+          setMostConsistentHabit(consistent);
+          setMostMissedHabit(missed);
+          setBestWeekday(weekday);
+        }, 0);
 
         // Decision metrics
         const allDecisions = await base44.entities.Decision.filter({ userId });
