@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format } from 'date-fns';
 import {
@@ -81,13 +81,22 @@ export default function JournalDetail() {
           <h1 className="text-3xl font-semibold flex-1" style={{ color: '#E8EAF0' }}>
             {entry.title || 'Untitled'}
           </h1>
-          <button
-            onClick={() => setShowDeleteDialog(true)}
-            className="p-2"
-            style={{ color: '#9AA3B2' }}
-          >
-            <Trash2 size={20} />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`${createPageUrl('JournalEdit')}?id=${entry.id}`)}
+              className="p-2"
+              style={{ color: '#9AA3B2' }}
+            >
+              <Edit size={20} />
+            </button>
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="p-2"
+              style={{ color: '#9AA3B2' }}
+            >
+              <Trash2 size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 space-y-2">

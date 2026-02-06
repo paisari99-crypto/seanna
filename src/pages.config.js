@@ -54,6 +54,7 @@ import Decisions from './pages/Decisions';
 import Insights from './pages/Insights';
 import JournalNew from './pages/JournalNew';
 import JournalDetail from './pages/JournalDetail';
+import JournalEdit from './pages/JournalEdit';
 
 
 export const PAGES = {
@@ -64,6 +65,7 @@ export const PAGES = {
     "Insights": Insights,
     "JournalNew": JournalNew,
     "JournalDetail": JournalDetail,
+    "JournalEdit": JournalEdit,
 }
 
 export const pagesConfig = {
