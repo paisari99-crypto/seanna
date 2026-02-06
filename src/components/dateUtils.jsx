@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { base44 } from '@/api/base44Client';
 
 let cachedTimezone = null;
@@ -32,7 +32,7 @@ export const getUserTimezone = async () => {
 export const getUserToday = async () => {
   const timezone = await getUserTimezone();
   const now = new Date();
-  const zonedDate = utcToZonedTime(now, timezone);
+  const zonedDate = toZonedTime(now, timezone);
   return format(zonedDate, 'yyyy-MM-dd');
 };
 
@@ -43,7 +43,7 @@ export const getUserToday = async () => {
 export const getUserDate = async (daysOffset = 0) => {
   const timezone = await getUserTimezone();
   const now = new Date();
-  const zonedDate = utcToZonedTime(now, timezone);
+  const zonedDate = toZonedTime(now, timezone);
   zonedDate.setDate(zonedDate.getDate() + daysOffset);
   return format(zonedDate, 'yyyy-MM-dd');
 };
