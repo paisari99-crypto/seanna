@@ -5,12 +5,15 @@ import { base44 } from '@/api/base44Client';
 import { BookOpen, Target, GitBranch, TrendingUp, Settings } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
+import TodaySummary from '../components/TodaySummary';
 
 export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [habitCount, setHabitCount] = useState(0);
   const [hasLoggedToday, setHasLoggedToday] = useState(false);
+  const [totalActiveHabits, setTotalActiveHabits] = useState(0);
+  const [completedToday, setCompletedToday] = useState(0);
   
   // Check if just completed a habit
   const urlParams = new URLSearchParams(window.location.search);
@@ -32,10 +35,18 @@ export default function Home() {
         const habits = await base44.entities.Habit.filter({ userId });
         setHabitCount(habits.length);
 
+        // Get active habits for today summary
+        const activeHabits = await base44.entities.Habit.filter({ userId, isActive: true });
+        setTotalActiveHabits(activeHabits.length);
+
         // Check if user has logged any habit today
         const today = new Date().toISOString().split('T')[0];
         const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
         setHasLoggedToday(todayLogs.length > 0);
+
+        // Count completed habits today
+        const completedCount = todayLogs.filter(log => log.status === 'done').length;
+        setCompletedToday(completedCount);
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
@@ -113,6 +124,11 @@ export default function Home() {
           hasLoggedToday={hasLoggedToday} 
           justCompleted={justCompleted}
           developerPreview={false} 
+        />
+
+        <TodaySummary 
+          totalHabits={totalActiveHabits}
+          completedToday={completedToday}
         />
 
         <div className="grid grid-cols-2 gap-3">
