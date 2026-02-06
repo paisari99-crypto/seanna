@@ -143,7 +143,7 @@ export default function HabitDetail() {
       borderRadius: '18px',
       fontWeight: 600,
       cursor: 'pointer',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.15s ease'
     };
 
     if (isActive) {
@@ -151,14 +151,14 @@ export default function HabitDetail() {
         ...baseStyle,
         backgroundColor: '#C9A227',
         color: '#0F1115',
-        border: 'none',
+        border: '2px solid #C9A227',
         boxShadow: '0 2px 8px rgba(201, 162, 39, 0.3)'
       };
     }
 
     return {
       ...baseStyle,
-      backgroundColor: 'transparent',
+      backgroundColor: '#0F1115',
       color: '#E8EAF0',
       border: '2px solid #2A2F3A'
     };
@@ -237,23 +237,17 @@ export default function HabitDetail() {
               onClick={() => handleStatusClick('done')}
               style={getStatusStyle('done', todayLog?.status === 'done')}
               onMouseEnter={(e) => {
-                if (todayLog?.status !== 'done') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'done') {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#1A1D24';
                 }
               }}
               onMouseLeave={(e) => {
-                if (todayLog?.status !== 'done') {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-              onMouseDown={(e) => {
-                if (todayLog?.status !== 'done') {
-                  e.currentTarget.style.backgroundColor = '#1F232B';
-                }
-              }}
-              onMouseUp={(e) => {
-                if (todayLog?.status !== 'done') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'done') {
+                  e.currentTarget.style.filter = 'brightness(1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#0F1115';
                 }
               }}
             >
@@ -263,23 +257,17 @@ export default function HabitDetail() {
               onClick={() => handleStatusClick('skipped')}
               style={getStatusStyle('skipped', todayLog?.status === 'skipped')}
               onMouseEnter={(e) => {
-                if (todayLog?.status !== 'skipped') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'skipped') {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#1A1D24';
                 }
               }}
               onMouseLeave={(e) => {
-                if (todayLog?.status !== 'skipped') {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-              onMouseDown={(e) => {
-                if (todayLog?.status !== 'skipped') {
-                  e.currentTarget.style.backgroundColor = '#1F232B';
-                }
-              }}
-              onMouseUp={(e) => {
-                if (todayLog?.status !== 'skipped') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'skipped') {
+                  e.currentTarget.style.filter = 'brightness(1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#0F1115';
                 }
               }}
             >
@@ -289,23 +277,17 @@ export default function HabitDetail() {
               onClick={() => handleStatusClick('missed')}
               style={getStatusStyle('missed', todayLog?.status === 'missed')}
               onMouseEnter={(e) => {
-                if (todayLog?.status !== 'missed') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'missed') {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#1A1D24';
                 }
               }}
               onMouseLeave={(e) => {
-                if (todayLog?.status !== 'missed') {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-              onMouseDown={(e) => {
-                if (todayLog?.status !== 'missed') {
-                  e.currentTarget.style.backgroundColor = '#1F232B';
-                }
-              }}
-              onMouseUp={(e) => {
-                if (todayLog?.status !== 'missed') {
-                  e.currentTarget.style.backgroundColor = '#2A2F3A';
+                if (todayLog?.status === 'missed') {
+                  e.currentTarget.style.filter = 'brightness(1)';
+                } else {
+                  e.currentTarget.style.backgroundColor = '#0F1115';
                 }
               }}
             >
