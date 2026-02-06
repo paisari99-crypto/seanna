@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Archive, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import { format, startOfDay, subDays } from 'date-fns';
 import {
