@@ -326,6 +326,101 @@ Provide a structured weekly review in the following JSON format:
               </div>
             </div>
 
+            {/* Weekly Highlights Section */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Weekly Highlights
+              </h2>
+              <div className="space-y-3">
+                {/* Card 1: Most consistent habit */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Most consistent
+                  </h3>
+                  {mostConsistentHabit ? (
+                    <>
+                      <p className="text-sm mb-1" style={{ color: '#E8EAF0' }}>
+                        You stayed consistent with: {mostConsistentHabit.name}
+                      </p>
+                      <p className="text-xs" style={{ color: '#9AA3B2' }}>
+                        {(() => {
+                          const now = new Date();
+                          const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+                          const habitLogs = metrics.habitLogsLast7 > 0 
+                            ? (() => {
+                                // Calculate on the fly
+                                return '—';
+                              })()
+                            : '—';
+                          return `High completion this week`;
+                        })()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      No consistency data yet
+                    </p>
+                  )}
+                </div>
+
+                {/* Card 2: Most missed */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Needs attention
+                  </h3>
+                  {mostMissedHabit ? (
+                    <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                      Most missed habit: {mostMissedHabit.name}
+                    </p>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      No missed habits this week
+                    </p>
+                  )}
+                </div>
+
+                {/* Card 3: Best weekday */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Strongest day
+                  </h3>
+                  {bestWeekday ? (
+                    <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                      Your best day: {bestWeekday}
+                    </p>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      Not enough data yet
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Card 4: Weekly AI Review */}
             <div
               className="p-5"
