@@ -30,8 +30,12 @@ export default function JournalEdit() {
           return;
         }
 
-        const entries = await base44.entities.JournalEntry.filter({ id });
-        if (entries.length > 0) {
+        const currentUser = await base44.auth.me();
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const userId = userProfiles[0]?.id;
+
+        const entries = await base44.entities.JournalEntry.filter({ id, userId });
+        if (entries.length > 0 && entries[0].userId === userId) {
           const entry = entries[0];
           setEntryId(entry.id);
           setTitle(entry.title || '');

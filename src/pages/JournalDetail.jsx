@@ -39,12 +39,13 @@ export default function JournalDetail() {
 
         const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const userId = userProfiles[0]?.id;
         if (userProfiles.length > 0) {
           setUserProfile(userProfiles[0]);
         }
 
-        const entries = await base44.entities.JournalEntry.filter({ id });
-        if (entries.length > 0) {
+        const entries = await base44.entities.JournalEntry.filter({ id, userId });
+        if (entries.length > 0 && entries[0].userId === userId) {
           setEntry(entries[0]);
         } else {
           navigate(createPageUrl('Journal'));
