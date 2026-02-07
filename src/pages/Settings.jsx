@@ -38,7 +38,7 @@ export default function Settings() {
   const [diagnosticsData, setDiagnosticsData] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
-  const [exporting, setExporting] = useState(false);
+  const [backupExporting, setBackupExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
 
@@ -76,7 +76,7 @@ export default function Settings() {
   }, []);
 
   const handleGDPRExportRequest = async () => {
-    setExporting(true);
+    setBackupExporting(true);
     try {
       await base44.entities.DataExportJob.create({
         userId: userProfile.id,
@@ -87,7 +87,7 @@ export default function Settings() {
       console.error('Error requesting export:', error);
       setGdprExportMessage('Failed to request export. Please try again.');
     } finally {
-      setExporting(false);
+      setBackupExporting(false);
     }
   };
 
@@ -156,7 +156,7 @@ export default function Settings() {
   };
 
   const handleExportJSON = async () => {
-    setExporting(true);
+    setBackupExporting(true);
     setBackupMessage('');
     try {
       // Fetch all user data
@@ -194,12 +194,12 @@ export default function Settings() {
       console.error('Error exporting data:', error);
       setBackupMessage('Export failed');
     } finally {
-      setExporting(false);
+      setBackupExporting(false);
     }
   };
 
   const handleExportCSV = async () => {
-    setExporting(true);
+    setBackupExporting(true);
     setBackupMessage('');
     try {
       const habits = await base44.entities.Habit.filter({ userId: userProfile.id });
@@ -257,7 +257,7 @@ export default function Settings() {
       console.error('Error exporting CSV:', error);
       setBackupMessage('Export failed');
     } finally {
-      setExporting(false);
+      setBackupExporting(false);
     }
   };
 
@@ -448,27 +448,27 @@ export default function Settings() {
               <div className="space-y-2">
                 <button
                   onClick={handleExportJSON}
-                  disabled={exporting || importing}
+                  disabled={backupExporting || importing}
                   className="w-full py-3 font-semibold"
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '18px',
-                    opacity: (exporting || importing) ? 0.5 : 1
+                    opacity: (backupExporting || importing) ? 0.5 : 1
                   }}
                 >
-                  {exporting ? 'Exporting...' : 'Export data (JSON)'}
+                  {backupExporting ? 'Exporting...' : 'Export data (JSON)'}
                 </button>
                 
                 <button
                   onClick={handleExportCSV}
-                  disabled={exporting || importing}
+                  disabled={backupExporting || importing}
                   className="w-full py-3 font-semibold"
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '18px',
-                    opacity: (exporting || importing) ? 0.5 : 1
+                    opacity: (backupExporting || importing) ? 0.5 : 1
                   }}
                 >
                   Export habits summary (CSV)
@@ -480,7 +480,7 @@ export default function Settings() {
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '18px',
-                    opacity: (exporting || importing) ? 0.5 : 1
+                    opacity: (backupExporting || importing) ? 0.5 : 1
                   }}
                 >
                   {importing ? 'Importing...' : 'Import backup'}
@@ -488,7 +488,7 @@ export default function Settings() {
                     type="file"
                     accept=".json"
                     onChange={handleImportBackup}
-                    disabled={exporting || importing}
+                    disabled={backupExporting || importing}
                     className="hidden"
                   />
                 </label>
@@ -514,16 +514,16 @@ export default function Settings() {
               </h2>
               <button
                 onClick={handleGDPRExportRequest}
-                disabled={exporting || importing}
+                disabled={backupExporting || importing}
                 className="w-full py-3 mb-3 font-semibold"
                 style={{
                   backgroundColor: '#C9A227',
                   color: '#0F1115',
                   borderRadius: '18px',
-                  opacity: (exporting || importing) ? 0.5 : 1
+                  opacity: (backupExporting || importing) ? 0.5 : 1
                 }}
               >
-                {exporting ? 'Requesting...' : 'Request Export'}
+                {backupExporting ? 'Requesting...' : 'Request Export'}
               </button>
               {gdprExportMessage && (
                 <p className="text-sm" style={{ color: '#9AA3B2' }}>
