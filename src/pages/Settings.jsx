@@ -28,7 +28,7 @@ export default function Settings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [exportMessage, setExportMessage] = useState('');
+  const [gdprExportMessage, setGdprExportMessage] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietHoursStart, setQuietHoursStart] = useState('22:00');
@@ -38,6 +38,9 @@ export default function Settings() {
   const [diagnosticsData, setDiagnosticsData] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [backupMessage, setBackupMessage] = useState('');
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -72,17 +75,17 @@ export default function Settings() {
     loadProfile();
   }, []);
 
-  const handleExportRequest = async () => {
+  const handleGDPRExportRequest = async () => {
     setExporting(true);
     try {
       await base44.entities.DataExportJob.create({
         userId: userProfile.id,
         status: 'queued'
       });
-      setExportMessage("Export requested. You'll receive a download link here when ready.");
+      setGdprExportMessage("Export requested. You'll receive a download link here when ready.");
     } catch (error) {
       console.error('Error requesting export:', error);
-      setExportMessage('Failed to request export. Please try again.');
+      setGdprExportMessage('Failed to request export. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -149,6 +152,150 @@ export default function Settings() {
       toast.error('Failed to update');
     } finally {
       setSavingQuietHours(false);
+    }
+  };
+
+  const handleExportJSON = async () => {
+    setExporting(true);
+    setBackupMessage('');
+    try {
+      // Fetch all user data
+      const habits = await base44.entities.Habit.filter({ userId: userProfile.id });
+      const logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
+      const journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
+      const decisions = await base44.entities.Decision.filter({ userId: userProfile.id });
+      
+      const backup = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        userProfile: {
+          displayName: userProfile.displayName,
+          timezone: userProfile.timezone,
+          planTier: userProfile.planTier
+        },
+        habits,
+        habitLogs: logs,
+        journalEntries,
+        decisions
+      };
+      
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seanna-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      
+      setBackupMessage('Data exported successfully');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setBackupMessage('Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    setBackupMessage('');
+    try {
+      const habits = await base44.entities.Habit.filter({ userId: userProfile.id });
+      const logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
+      
+      // Calculate stats for each habit
+      const habitStats = habits.map(habit => {
+        const habitLogs = logs.filter(log => log.habitId === habit.id);
+        const doneCount = habitLogs.filter(log => log.status === 'done').length;
+        const totalLogs = habitLogs.length;
+        const completionRate = totalLogs > 0 ? Math.round((doneCount / totalLogs) * 100) : 0;
+        
+        return {
+          name: habit.name,
+          description: habit.description || '',
+          scheduleType: habit.scheduleType,
+          isActive: habit.isActive,
+          totalLogs,
+          completedLogs: doneCount,
+          completionRate: `${completionRate}%`,
+          createdDate: habit.created_date
+        };
+      });
+      
+      // Create CSV
+      const headers = ['Name', 'Description', 'Schedule', 'Active', 'Total Logs', 'Completed', 'Completion Rate', 'Created'];
+      const rows = habitStats.map(h => [
+        h.name,
+        h.description,
+        h.scheduleType,
+        h.isActive ? 'Yes' : 'No',
+        h.totalLogs,
+        h.completedLogs,
+        h.completionRate,
+        h.createdDate
+      ]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seanna-habits-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      
+      setBackupMessage('CSV exported successfully');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      setBackupMessage('Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportBackup = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setImporting(true);
+    setBackupMessage('');
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      
+      // Validate backup structure
+      if (!backup.version || !backup.habits) {
+        throw new Error('Invalid backup file');
+      }
+      
+      // Import habits
+      let imported = 0;
+      for (const habit of backup.habits) {
+        const { id, created_date, updated_date, created_by, ...habitData } = habit;
+        await base44.entities.Habit.create({
+          ...habitData,
+          userId: userProfile.id
+        });
+        imported++;
+      }
+      
+      setBackupMessage(`Imported ${imported} habit${imported !== 1 ? 's' : ''} successfully`);
+      toast.success('Backup imported');
+    } catch (error) {
+      console.error('Error importing backup:', error);
+      setBackupMessage('Import failed - invalid file');
+      toast.error('Import failed');
+    } finally {
+      setImporting(false);
+      event.target.value = '';
     }
   };
 
@@ -287,7 +434,74 @@ export default function Settings() {
               )}
             </div>
 
-            {/* Card 2: Export my data */}
+            {/* Backup */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Backup
+              </h2>
+              <div className="space-y-2">
+                <button
+                  onClick={handleExportJSON}
+                  disabled={exporting || importing}
+                  className="w-full py-3 font-semibold"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '18px',
+                    opacity: (exporting || importing) ? 0.5 : 1
+                  }}
+                >
+                  {exporting ? 'Exporting...' : 'Export data (JSON)'}
+                </button>
+                
+                <button
+                  onClick={handleExportCSV}
+                  disabled={exporting || importing}
+                  className="w-full py-3 font-semibold"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '18px',
+                    opacity: (exporting || importing) ? 0.5 : 1
+                  }}
+                >
+                  Export habits summary (CSV)
+                </button>
+                
+                <label
+                  className="w-full py-3 font-semibold block text-center cursor-pointer"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '18px',
+                    opacity: (exporting || importing) ? 0.5 : 1
+                  }}
+                >
+                  {importing ? 'Importing...' : 'Import backup'}
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportBackup}
+                    disabled={exporting || importing}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              
+              {backupMessage && (
+                <p className="text-sm mt-3" style={{ color: backupMessage.includes('failed') ? '#E8EAF0' : '#C9A227' }}>
+                  {backupMessage}
+                </p>
+              )}
+            </div>
+
+            {/* GDPR Export */}
             <div
               className="p-5"
               style={{
@@ -299,21 +513,21 @@ export default function Settings() {
                 Export my data
               </h2>
               <button
-                onClick={handleExportRequest}
-                disabled={exporting}
+                onClick={handleGDPRExportRequest}
+                disabled={exporting || importing}
                 className="w-full py-3 mb-3 font-semibold"
                 style={{
                   backgroundColor: '#C9A227',
                   color: '#0F1115',
                   borderRadius: '18px',
-                  opacity: exporting ? 0.5 : 1
+                  opacity: (exporting || importing) ? 0.5 : 1
                 }}
               >
                 {exporting ? 'Requesting...' : 'Request Export'}
               </button>
-              {exportMessage && (
+              {gdprExportMessage && (
                 <p className="text-sm" style={{ color: '#9AA3B2' }}>
-                  {exportMessage}
+                  {gdprExportMessage}
                 </p>
               )}
             </div>
