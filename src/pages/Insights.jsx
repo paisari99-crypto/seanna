@@ -4,6 +4,7 @@ import { Sparkles, Lock } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import WeeklyPatternCard from '../components/WeeklyPatternCard';
 import { getMostConsistentHabit, getMostMissedHabit, getBestWeekday } from '../components/insightUtils';
+import { getMostConsistentHabit as getConsistent, getNeedsAttentionHabit, getStrongestDay } from '../components/analyticsUtils';
 
 export default function Insights() {
   const [metrics, setMetrics] = useState({
@@ -22,6 +23,9 @@ export default function Insights() {
   const [mostConsistentHabit, setMostConsistentHabit] = useState(null);
   const [mostMissedHabit, setMostMissedHabit] = useState(null);
   const [bestWeekday, setBestWeekday] = useState(null);
+  const [analyticsConsistent, setAnalyticsConsistent] = useState(null);
+  const [analyticsNeedsAttention, setAnalyticsNeedsAttention] = useState(null);
+  const [analyticsStrongestDay, setAnalyticsStrongestDay] = useState(null);
 
   useEffect(() => {
     const loadMetrics = async () => {
@@ -70,6 +74,15 @@ export default function Insights() {
           setMostConsistentHabit(consistent);
           setMostMissedHabit(missed);
           setBestWeekday(weekday);
+          
+          // Compute analytics cards
+          const analyticsConsistent = getConsistent(activeHabits, allHabitLogs);
+          const analyticsAttention = getNeedsAttentionHabit(activeHabits, allHabitLogs);
+          const analyticsDay = getStrongestDay(allHabitLogs);
+          
+          setAnalyticsConsistent(analyticsConsistent);
+          setAnalyticsNeedsAttention(analyticsAttention);
+          setAnalyticsStrongestDay(analyticsDay);
         }, 0);
 
         // Decision metrics
@@ -302,6 +315,99 @@ Provide a structured weekly review in the following JSON format:
                   <span className="text-2xl font-bold" style={{ color: '#C9A227' }}>
                     {metrics.habitDoneRate}%
                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Analytics Cards */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Analytics
+              </h2>
+              <div className="space-y-3">
+                {/* Most consistent habit */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Most consistent habit
+                  </h3>
+                  {analyticsConsistent ? (
+                    <>
+                      <p className="text-sm mb-1 font-medium" style={{ color: '#E8EAF0' }}>
+                        {analyticsConsistent.name}
+                      </p>
+                      <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                        {Math.round(analyticsConsistent.completionRate)}% completion
+                      </p>
+                      <p className="text-xs" style={{ color: '#9AA3B2', fontStyle: 'italic' }}>
+                        This system is working well.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      Track a few days to see patterns.
+                    </p>
+                  )}
+                </div>
+
+                {/* Needs attention */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Needs attention
+                  </h3>
+                  {analyticsNeedsAttention ? (
+                    <>
+                      <p className="text-sm mb-1 font-medium" style={{ color: '#E8EAF0' }}>
+                        {analyticsNeedsAttention.name}
+                      </p>
+                      <p className="text-xs" style={{ color: '#9AA3B2' }}>
+                        This habit is frequently missed.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      Track a few days to see patterns.
+                    </p>
+                  )}
+                </div>
+
+                {/* Strongest day */}
+                <div
+                  className="p-4"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: '#C9A227' }}>
+                    Strongest day
+                  </h3>
+                  {analyticsStrongestDay ? (
+                    <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                      You perform best on {analyticsStrongestDay}.
+                    </p>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                      More tracking needed to detect patterns.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
