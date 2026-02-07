@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Bell } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import StreakStrip from '../components/StreakStrip';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { requestNotificationPermission } from '../components/notificationUtils';
 import { getUserToday, getUserDate, calculateCurrentStreak, calculateBestStreak } from '../components/dateUtils';
 import {
   AlertDialog,
@@ -33,6 +37,9 @@ export default function HabitDetail() {
   const [bestStreak, setBestStreak] = useState(0);
   const [today, setToday] = useState('');
   const [userProfile, setUserProfile] = useState(null);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState('20:00');
+  const [savingReminder, setSavingReminder] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -60,7 +67,10 @@ export default function HabitDetail() {
           navigate(createPageUrl('Habits'));
           return;
         }
-        setHabit(habits[0]);
+        const habitData = habits[0];
+        setHabit(habitData);
+        setReminderEnabled(habitData.reminderEnabled || false);
+        setReminderTime(habitData.reminderTime || '20:00');
 
         if (uid) {
           // Check if this is the user's first habit
@@ -159,6 +169,51 @@ export default function HabitDetail() {
     } catch (error) {
       console.error('Error archiving habit:', error);
       setArchiving(false);
+    }
+  };
+
+  const handleReminderToggle = async (checked) => {
+    setSavingReminder(true);
+    try {
+      if (checked) {
+        const hasPermission = await requestNotificationPermission();
+        if (!hasPermission) {
+          toast.error('Notification permission denied');
+          setSavingReminder(false);
+          return;
+        }
+      }
+      
+      setReminderEnabled(checked);
+      await base44.entities.Habit.update(habit.id, { 
+        reminderEnabled: checked,
+        reminderTime 
+      });
+      toast.success(checked ? 'Reminder enabled' : 'Reminder disabled');
+    } catch (error) {
+      console.error('Error updating reminder:', error);
+      toast.error('Failed to update reminder');
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  const handleReminderTimeChange = async (newTime) => {
+    if (!newTime) return;
+    
+    setSavingReminder(true);
+    try {
+      setReminderTime(newTime);
+      await base44.entities.Habit.update(habit.id, { 
+        reminderTime: newTime,
+        reminderEnabled 
+      });
+      toast.success('Reminder time updated');
+    } catch (error) {
+      console.error('Error updating reminder time:', error);
+      toast.error('Failed to update time');
+    } finally {
+      setSavingReminder(false);
     }
   };
 
@@ -398,6 +453,58 @@ export default function HabitDetail() {
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Reminder section */}
+        <div
+          className="p-4 mb-4"
+          style={{
+            backgroundColor: '#1A1D24',
+            borderRadius: '18px'
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Bell size={18} style={{ color: '#C9A227' }} />
+            <h2 className="text-lg font-semibold" style={{ color: '#E8EAF0' }}>
+              Reminder
+            </h2>
+          </div>
+          
+          <div className="flex items-center justify-between mb-3">
+            <Label htmlFor="reminder-toggle" style={{ color: '#E8EAF0' }}>
+              Enable reminder
+            </Label>
+            <Switch
+              id="reminder-toggle"
+              checked={reminderEnabled}
+              onCheckedChange={handleReminderToggle}
+              disabled={savingReminder}
+            />
+          </div>
+          
+          {reminderEnabled && (
+            <div>
+              <Label htmlFor="reminder-time" className="text-sm mb-2 block" style={{ color: '#9AA3B2' }}>
+                Reminder time
+              </Label>
+              <Input
+                id="reminder-time"
+                type="time"
+                value={reminderTime}
+                onChange={(e) => handleReminderTimeChange(e.target.value)}
+                disabled={savingReminder}
+                style={{
+                  backgroundColor: '#0F1115',
+                  color: '#E8EAF0',
+                  border: '1px solid #2A2F3A',
+                  borderRadius: '12px'
+                }}
+              />
+              <p className="text-xs mt-2" style={{ color: '#9AA3B2' }}>
+                Get notified if habit is not logged by this time
+              </p>
             </div>
           )}
         </div>
