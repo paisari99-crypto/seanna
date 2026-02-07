@@ -53,6 +53,15 @@ export default function Settings() {
           setQuietHoursStart(profile.quietHoursStart || '22:00');
           setQuietHoursEnd(profile.quietHoursEnd || '08:00');
         }
+        
+        // Load diagnostics data
+        const lastError = localStorage.getItem('seanna_last_error');
+        const lastSync = localStorage.getItem('seanna_last_sync');
+        setDiagnosticsData({
+          lastError: lastError ? JSON.parse(lastError) : null,
+          lastSync: lastSync || 'Never',
+          appVersion: '1.0.0'
+        });
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -371,12 +380,118 @@ export default function Settings() {
                 <Link
                   to={createPageUrl('Disclaimer')}
                   className="flex items-center justify-between py-3"
+                  style={{ borderBottom: '1px solid rgba(202, 162, 39, 0.1)' }}
                 >
                   <span style={{ color: '#E8EAF0' }}>Disclaimer</span>
                   <ChevronRight size={18} style={{ color: '#9AA3B2' }} />
                 </Link>
+                
+                {/* Hidden diagnostics - tap 5 times to reveal */}
+                <button
+                  onClick={() => {
+                    const taps = parseInt(sessionStorage.getItem('diag_taps') || '0') + 1;
+                    sessionStorage.setItem('diag_taps', taps.toString());
+                    if (taps >= 5) {
+                      setShowDiagnostics(true);
+                      sessionStorage.removeItem('diag_taps');
+                    }
+                  }}
+                  className="flex items-center justify-between py-3 w-full text-left"
+                >
+                  <span style={{ color: '#E8EAF0' }}>App Information</span>
+                  <ChevronRight size={18} style={{ color: '#9AA3B2' }} />
+                </button>
               </div>
             </div>
+            
+            {/* Developer Diagnostics Panel */}
+            {showDiagnostics && diagnosticsData && (
+              <div
+                className="p-4"
+                style={{
+                  backgroundColor: '#1A1D24',
+                  borderRadius: '18px',
+                  border: '1px solid #2A2F3A'
+                }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                    Diagnostics
+                  </h2>
+                  <button
+                    onClick={() => setShowDiagnostics(false)}
+                    className="text-xs"
+                    style={{ color: '#9AA3B2' }}
+                  >
+                    Hide
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                      App version
+                    </p>
+                    <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                      {diagnosticsData.appVersion}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                      Last sync
+                    </p>
+                    <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                      {diagnosticsData.lastSync === 'Never' 
+                        ? diagnosticsData.lastSync 
+                        : new Date(diagnosticsData.lastSync).toLocaleString()}
+                    </p>
+                  </div>
+                  
+                  {diagnosticsData.lastError && (
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                        Last error
+                      </p>
+                      <div
+                        className="p-2 text-xs"
+                        style={{
+                          backgroundColor: '#0F1115',
+                          borderRadius: '8px',
+                          color: '#E8EAF0',
+                          fontFamily: 'monospace',
+                          maxHeight: '120px',
+                          overflow: 'auto'
+                        }}
+                      >
+                        <p className="mb-1">{new Date(diagnosticsData.lastError.timestamp).toLocaleString()}</p>
+                        <p>{diagnosticsData.lastError.error}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('seanna_last_error');
+                      localStorage.removeItem('seanna_last_sync');
+                      setDiagnosticsData({
+                        ...diagnosticsData,
+                        lastError: null,
+                        lastSync: 'Never'
+                      });
+                    }}
+                    className="w-full py-2 text-xs"
+                    style={{
+                      backgroundColor: '#0F1115',
+                      color: '#9AA3B2',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    Clear logs
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Card 5: Developer */}
             <div
