@@ -34,6 +34,8 @@ export default function Settings() {
   const [quietHoursStart, setQuietHoursStart] = useState('22:00');
   const [quietHoursEnd, setQuietHoursEnd] = useState('08:00');
   const [savingQuietHours, setSavingQuietHours] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnosticsData, setDiagnosticsData] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
 

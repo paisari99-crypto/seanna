@@ -21,6 +21,8 @@ export default function Habits() {
   const [highlightedHabit, setHighlightedHabit] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [animatingHabit, setAnimatingHabit] = useState(null);
+  const [loggingHabit, setLoggingHabit] = useState(null);
+  const [lastLogTime, setLastLogTime] = useState({});
 
   useEffect(() => {
     const loadData = async () => {
@@ -152,11 +154,22 @@ export default function Habits() {
     event.preventDefault();
     event.stopPropagation();
     
+    // Debounce: prevent duplicate logs within 1 second
+    const now = Date.now();
+    const lastLog = lastLogTime[habit.id] || 0;
+    if (now - lastLog < 1000) {
+      return;
+    }
+    setLastLogTime(prev => ({ ...prev, [habit.id]: now }));
+    
     // Trigger animation for 'done' status
     if (status === 'done') {
       setAnimatingHabit(habit.id);
       setTimeout(() => setAnimatingHabit(null), 500);
     }
+    
+    // Show syncing state
+    setLoggingHabit(habit.id);
     
     try {
       const currentUser = await base44.auth.me();
@@ -185,16 +198,23 @@ export default function Habits() {
         });
       }
       
+      // Update last sync time
+      localStorage.setItem('seanna_last_sync', new Date().toISOString());
+      
       // Recalculate streak in background
       const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
       const newStreak = calculateCurrentStreak(allLogs, today);
       setHabitStreaks(prev => ({ ...prev, [habit.id]: newStreak }));
+      
+      // Clear syncing state after confirmation
+      setTimeout(() => setLoggingHabit(null), 800);
     } catch (error) {
       console.error('Error logging habit:', error);
       // Revert optimistic update on error
       const todayStatus = habitTodayStatus[habit.id];
       setHabitTodayStatus(prev => ({ ...prev, [habit.id]: todayStatus }));
       setHabitCompletedToday(prev => ({ ...prev, [habit.id]: todayStatus === 'done' }));
+      setLoggingHabit(null);
       toast.error('Failed to log');
     }
   };
@@ -217,6 +237,7 @@ export default function Habits() {
     const isCompleted = habitCompletedToday[habit.id];
     const todayStatus = habitTodayStatus[habit.id];
     const isHighlighted = highlightedHabit === habit.id;
+    const isSyncing = loggingHabit === habit.id;
     
     return (
       <Link
@@ -270,27 +291,36 @@ export default function Habits() {
           {/* Quick action buttons or status label */}
           <div className="flex gap-2 mt-3">
             {todayStatus ? (
-              <span
-                className="px-3 py-1 text-xs font-semibold capitalize"
-                style={{
-                  backgroundColor: todayStatus === 'done' ? '#C9A227' : '#0F1115',
-                  color: todayStatus === 'done' ? '#0F1115' : '#9AA3B2',
-                  borderRadius: '12px'
-                }}
-              >
-                {todayStatus}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="px-3 py-1 text-xs font-semibold capitalize"
+                  style={{
+                    backgroundColor: todayStatus === 'done' ? '#C9A227' : '#0F1115',
+                    color: todayStatus === 'done' ? '#0F1115' : '#9AA3B2',
+                    borderRadius: '12px'
+                  }}
+                >
+                  {todayStatus}
+                </span>
+                {isSyncing && (
+                  <span className="text-xs" style={{ color: '#9AA3B2', opacity: 0.6 }}>
+                    Syncing...
+                  </span>
+                )}
+              </div>
             ) : (
               <>
                 <button
                   onClick={(e) => handleQuickLog(habit, 'done', e)}
+                  disabled={isSyncing}
                   className="flex items-center gap-1 px-3 py-1 text-xs font-semibold"
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '12px',
                     transform: animatingHabit === habit.id ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    opacity: isSyncing ? 0.5 : 1
                   }}
                 >
                   <Check size={12} />
@@ -298,12 +328,14 @@ export default function Habits() {
                 </button>
                 <button
                   onClick={(e) => handleQuickLog(habit, 'skipped', e)}
+                  disabled={isSyncing}
                   className="flex items-center gap-1 px-3 py-1 text-xs font-semibold"
                   style={{
                     backgroundColor: '#0F1115',
                     color: '#9AA3B2',
                     borderRadius: '12px',
-                    border: '1px solid #2A2F3A'
+                    border: '1px solid #2A2F3A',
+                    opacity: isSyncing ? 0.5 : 1
                   }}
                 >
                   <CornerDownRight size={12} />

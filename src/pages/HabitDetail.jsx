@@ -44,6 +44,8 @@ export default function HabitDetail() {
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneReached, setMilestoneReached] = useState(null);
   const [doneAnimation, setDoneAnimation] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastStatusClick, setLastStatusClick] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -112,7 +114,17 @@ export default function HabitDetail() {
   const handleStatusClick = async (status) => {
     if (!userId || !habit) return;
 
+    // Debounce: prevent duplicate actions within 1 second
+    const now = Date.now();
+    if (now - lastStatusClick < 1000) {
+      return;
+    }
+    setLastStatusClick(now);
+
     try {
+      // Show syncing state
+      setSyncing(true);
+      
       // Trigger animation for 'done' status
       if (status === 'done') {
         setDoneAnimation(true);
@@ -132,6 +144,9 @@ export default function HabitDetail() {
         setTodayLog(updated);
         setRecentLogs(prev => prev.map(log => log.id === updated.id ? updated : log));
         
+        // Update last sync time
+        localStorage.setItem('seanna_last_sync', new Date().toISOString());
+        
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
         const todayDate = getUserToday(userProfile);
@@ -148,6 +163,9 @@ export default function HabitDetail() {
         
         setCurrentStreak(current);
         setBestStreak(best);
+        
+        // Clear syncing state
+        setTimeout(() => setSyncing(false), 500);
       } else {
         // Optimistic update for new log
         const tempLog = {
@@ -170,6 +188,9 @@ export default function HabitDetail() {
         setTodayLog(newLog);
         setRecentLogs(prev => [newLog, ...prev.filter(l => l.id !== tempLog.id)]);
         
+        // Update last sync time
+        localStorage.setItem('seanna_last_sync', new Date().toISOString());
+        
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
         const todayDate = getUserToday(userProfile);
@@ -187,6 +208,9 @@ export default function HabitDetail() {
         setCurrentStreak(current);
         setBestStreak(best);
         
+        // Clear syncing state
+        setTimeout(() => setSyncing(false), 500);
+        
         // Show success toast and navigate for first-time users
         if (isFirstLogEver) {
           toast.success('First step completed.');
@@ -197,6 +221,7 @@ export default function HabitDetail() {
       }
     } catch (error) {
       console.error('Error updating habit log:', error);
+      setSyncing(false);
       toast.error('Failed to update');
     }
   };
@@ -390,9 +415,16 @@ export default function HabitDetail() {
             </p>
           )}
           
+          {syncing && (
+            <p className="text-xs mb-2" style={{ color: '#9AA3B2' }}>
+              Syncing...
+            </p>
+          )}
+          
           <div className="flex gap-2">
             <button
               onClick={() => handleStatusClick('done')}
+              disabled={syncing}
               style={{
                 ...getStatusStyle('done', todayLog?.status === 'done'),
                 transform: doneAnimation ? 'scale(1.05)' : 'scale(1)',
@@ -420,6 +452,7 @@ export default function HabitDetail() {
             </button>
             <button
               onClick={() => handleStatusClick('skipped')}
+              disabled={syncing}
               style={getStatusStyle('skipped', todayLog?.status === 'skipped')}
               onMouseEnter={(e) => {
                 if (todayLog?.status === 'skipped') {
@@ -440,6 +473,7 @@ export default function HabitDetail() {
             </button>
             <button
               onClick={() => handleStatusClick('missed')}
+              disabled={syncing}
               style={getStatusStyle('missed', todayLog?.status === 'missed')}
               onMouseEnter={(e) => {
                 if (todayLog?.status === 'missed') {
