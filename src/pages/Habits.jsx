@@ -2,19 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Check, CornerDownRight } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
 import { getUserToday, calculateCurrentStreak } from '../components/dateUtils';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [habitStreaks, setHabitStreaks] = useState({});
   const [habitCompletedToday, setHabitCompletedToday] = useState({});
+  const [habitTodayStatus, setHabitTodayStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [duplicateGroups, setDuplicateGroups] = useState([]);
   const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false);
+  const [highlightedHabit, setHighlightedHabit] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -23,6 +27,7 @@ export default function Habits() {
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
         const profile = userProfiles[0];
         const userId = profile?.id;
+        setUserProfile(profile);
         
         if (userId) {
           const activeHabits = await base44.entities.Habit.filter(
@@ -34,6 +39,7 @@ export default function Habits() {
           // Calculate streaks and check today's completion for each habit
           const streaks = {};
           const completedToday = {};
+          const todayStatus = {};
           const today = getUserToday(profile);
           
           for (const habit of activeHabits) {
@@ -46,9 +52,11 @@ export default function Habits() {
             // Check if habit is done today
             const todayLog = logs.find(log => log.date === today);
             completedToday[habit.id] = todayLog?.status === 'done';
+            todayStatus[habit.id] = todayLog?.status || null;
           }
           setHabitStreaks(streaks);
           setHabitCompletedToday(completedToday);
+          setHabitTodayStatus(todayStatus);
           
           // Detect duplicate habits
           const duplicates = findDuplicateHabits(activeHabits);
@@ -138,7 +146,51 @@ export default function Habits() {
     return matrix[str2.length][str1.length];
   };
 
-
+  const handleQuickLog = async (habit, status, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    try {
+      const currentUser = await base44.auth.me();
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      const profile = userProfiles[0];
+      const userId = profile?.id;
+      const today = getUserToday(profile);
+      
+      // Create or update today's log
+      const todayLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId, date: today });
+      
+      if (todayLogs.length > 0) {
+        await base44.entities.HabitLog.update(todayLogs[0].id, { status });
+      } else {
+        await base44.entities.HabitLog.create({
+          habitId: habit.id,
+          userId,
+          date: today,
+          status
+        });
+      }
+      
+      // Update UI
+      setHabitTodayStatus(prev => ({ ...prev, [habit.id]: status }));
+      setHabitCompletedToday(prev => ({ ...prev, [habit.id]: status === 'done' }));
+      
+      // Recalculate streak
+      const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
+      const newStreak = calculateCurrentStreak(allLogs, today);
+      setHabitStreaks(prev => ({ ...prev, [habit.id]: newStreak }));
+      
+      // Highlight card
+      setHighlightedHabit(habit.id);
+      setTimeout(() => setHighlightedHabit(null), 1000);
+      
+      // Show toast
+      toast.success('Logged');
+    } catch (error) {
+      console.error('Error logging habit:', error);
+      toast.error('Failed to log');
+    }
+  };
 
   const getScheduleLabel = (type) => {
     const labels = {
@@ -156,6 +208,9 @@ export default function Habits() {
 
   const renderHabitCard = (habit) => {
     const isCompleted = habitCompletedToday[habit.id];
+    const todayStatus = habitTodayStatus[habit.id];
+    const isHighlighted = highlightedHabit === habit.id;
+    
     return (
       <Link
         key={habit.id}
@@ -163,15 +218,17 @@ export default function Habits() {
         className="block"
       >
         <div
-          className="p-4 transition-transform hover:scale-[1.02] relative"
+          className="p-4 transition-all relative"
           style={{
             backgroundColor: '#1A1D24',
             borderRadius: '18px',
             border: isCompleted ? 'none' : '1px solid rgba(201, 162, 39, 0.3)',
-            opacity: isCompleted ? 0.7 : 1
+            opacity: isCompleted ? 0.7 : 1,
+            transform: isHighlighted ? 'scale(1.02)' : 'scale(1)',
+            boxShadow: isHighlighted ? '0 4px 12px rgba(201, 162, 39, 0.3)' : 'none'
           }}
         >
-          {!isCompleted && (
+          {!isCompleted && !todayStatus && (
             <div
               className="absolute top-3 right-3 w-2 h-2 rounded-full"
               style={{ backgroundColor: '#C9A227' }}
@@ -198,10 +255,54 @@ export default function Habits() {
               : 'No active streak'}
           </p>
           {habit.description && (
-            <p className="text-sm" style={{ color: '#9AA3B2' }}>
+            <p className="text-sm mb-2" style={{ color: '#9AA3B2' }}>
               {truncateDescription(habit.description)}
             </p>
           )}
+          
+          {/* Quick action buttons or status label */}
+          <div className="flex gap-2 mt-3">
+            {todayStatus ? (
+              <span
+                className="px-3 py-1 text-xs font-semibold capitalize"
+                style={{
+                  backgroundColor: todayStatus === 'done' ? '#C9A227' : '#0F1115',
+                  color: todayStatus === 'done' ? '#0F1115' : '#9AA3B2',
+                  borderRadius: '12px'
+                }}
+              >
+                {todayStatus}
+              </span>
+            ) : (
+              <>
+                <button
+                  onClick={(e) => handleQuickLog(habit, 'done', e)}
+                  className="flex items-center gap-1 px-3 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <Check size={12} />
+                  Done
+                </button>
+                <button
+                  onClick={(e) => handleQuickLog(habit, 'skipped', e)}
+                  className="flex items-center gap-1 px-3 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: '#0F1115',
+                    color: '#9AA3B2',
+                    borderRadius: '12px',
+                    border: '1px solid #2A2F3A'
+                  }}
+                >
+                  <CornerDownRight size={12} />
+                  Skip
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </Link>
     );
