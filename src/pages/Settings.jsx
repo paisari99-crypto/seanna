@@ -27,7 +27,6 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [gdprExportMessage, setGdprExportMessage] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietHoursStart, setQuietHoursStart] = useState('22:00');
@@ -72,22 +71,6 @@ export default function Settings() {
 
     loadProfile();
   }, []);
-
-  const handleGDPRExportRequest = async () => {
-    setBackupExporting(true);
-    try {
-      await base44.entities.DataExportJob.create({
-        userId: userProfile.id,
-        status: 'queued'
-      });
-      setGdprExportMessage("Export requested. You'll receive a download link here when ready.");
-    } catch (error) {
-      console.error('Error requesting export:', error);
-      setGdprExportMessage('Failed to request export. Please try again.');
-    } finally {
-      setBackupExporting(false);
-    }
-  };
 
   const handleDeleteRequest = async () => {
     setDeleting(true);
@@ -187,7 +170,7 @@ export default function Settings() {
       URL.revokeObjectURL(url);
       a.remove();
       
-      setBackupMessage('Data exported successfully');
+      setBackupMessage('Backup downloaded');
     } catch (error) {
       console.error('Error exporting data:', error);
       setBackupMessage('Export failed');
@@ -455,7 +438,7 @@ export default function Settings() {
                     opacity: (backupExporting || importing) ? 0.5 : 1
                   }}
                 >
-                  {backupExporting ? 'Exporting...' : 'Export data (JSON)'}
+                  {backupExporting ? 'Downloading...' : 'Download backup'}
                 </button>
                 
                 <button
@@ -495,37 +478,6 @@ export default function Settings() {
               {backupMessage && (
                 <p className="text-sm mt-3" style={{ color: backupMessage.includes('failed') ? '#E8EAF0' : '#C9A227' }}>
                   {backupMessage}
-                </p>
-              )}
-            </div>
-
-            {/* GDPR Export */}
-            <div
-              className="p-5"
-              style={{
-                backgroundColor: '#1A1D24',
-                borderRadius: '18px'
-              }}
-            >
-              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
-                Export my data
-              </h2>
-              <button
-                onClick={handleGDPRExportRequest}
-                disabled={backupExporting || importing}
-                className="w-full py-3 mb-3 font-semibold"
-                style={{
-                  backgroundColor: '#C9A227',
-                  color: '#0F1115',
-                  borderRadius: '18px',
-                  opacity: (backupExporting || importing) ? 0.5 : 1
-                }}
-              >
-                {backupExporting ? 'Requesting...' : 'Request Export'}
-              </button>
-              {gdprExportMessage && (
-                <p className="text-sm" style={{ color: '#9AA3B2' }}>
-                  {gdprExportMessage}
                 </p>
               )}
             </div>
