@@ -11,6 +11,14 @@ export default function ImportService({ userProfile, onComplete }) {
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const generateExternalId = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const validateBackup = async (backupData) => {
     const errors = [];
     const warnings = [];
@@ -55,42 +63,118 @@ export default function ImportService({ userProfile, onComplete }) {
     const existingJournals = await base44.entities.JournalEntry.filter({ userId: currentUserId });
     const existingDecisions = await base44.entities.Decision.filter({ userId: currentUserId });
 
-    const existingHabitIds = new Set(existingHabits.map(h => h.id));
-    const existingLogIds = new Set(existingLogs.map(l => l.id));
-    const existingJournalIds = new Set(existingJournals.map(j => j.id));
-    const existingDecisionIds = new Set(existingDecisions.map(d => d.id));
+    // Build maps by externalId for deduplication
+    const existingHabitsByExtId = new Map(existingHabits.filter(h => h.externalId).map(h => [h.externalId, h]));
+    const existingJournalsByExtId = new Map(existingJournals.filter(j => j.externalId).map(j => [j.externalId, j]));
+    const existingDecisionsByExtId = new Map(existingDecisions.filter(d => d.externalId).map(d => [d.externalId, d]));
+
+    // Build habit externalId map for log deduplication
+    const habitExtIdToId = new Map();
+    existingHabits.forEach(h => {
+      if (h.externalId) habitExtIdToId.set(h.externalId, h.id);
+    });
+    sections.habits.forEach(h => {
+      if (h.externalId) habitExtIdToId.set(h.externalId, h.id);
+    });
+
+    // For HabitLog: composite key (habitExternalId + date + userId)
+    const existingLogKeys = new Set();
+    existingLogs.forEach(log => {
+      const habit = existingHabits.find(h => h.id === log.habitId);
+      if (habit?.externalId) {
+        existingLogKeys.add(`${habit.externalId}:${log.date}`);
+      }
+    });
 
     const preview = {
       habits: {
-        create: sections.habits.filter(h => !existingHabitIds.has(h.id)),
-        update: sections.habits.filter(h => existingHabitIds.has(h.id)),
+        create: [],
         skip: []
       },
       habitLogs: {
-        create: sections.habitLogs.filter(l => !existingLogIds.has(l.id)),
-        update: sections.habitLogs.filter(l => existingLogIds.has(l.id)),
+        create: [],
         skip: []
       },
       journalEntries: {
-        create: sections.journalEntries.filter(j => !existingJournalIds.has(j.id)),
-        update: sections.journalEntries.filter(j => existingJournalIds.has(j.id)),
+        create: [],
         skip: []
       },
       decisions: {
-        create: sections.decisions.filter(d => !existingDecisionIds.has(d.id)),
-        update: sections.decisions.filter(d => existingDecisionIds.has(d.id)),
+        create: [],
         skip: []
       }
     };
 
-    // Check referential integrity - logs referencing missing habits
-    const habitIdMap = new Map(sections.habits.map(h => [h.id, h]));
-    preview.habitLogs.skip = sections.habitLogs.filter(log => {
-      return log.habitId && !habitIdMap.has(log.habitId) && !existingHabitIds.has(log.habitId);
+    // Process habits - deduplicate by externalId
+    sections.habits.forEach(habit => {
+      // Ensure externalId exists (backward compatibility)
+      if (!habit.externalId) {
+        habit.externalId = generateExternalId();
+      }
+      
+      if (existingHabitsByExtId.has(habit.externalId)) {
+        preview.habits.skip.push(habit);
+      } else {
+        preview.habits.create.push(habit);
+      }
     });
+
+    // Process journal entries - deduplicate by externalId
+    sections.journalEntries.forEach(entry => {
+      if (!entry.externalId) {
+        entry.externalId = generateExternalId();
+      }
+      
+      if (existingJournalsByExtId.has(entry.externalId)) {
+        preview.journalEntries.skip.push(entry);
+      } else {
+        preview.journalEntries.create.push(entry);
+      }
+    });
+
+    // Process decisions - deduplicate by externalId
+    sections.decisions.forEach(decision => {
+      if (!decision.externalId) {
+        decision.externalId = generateExternalId();
+      }
+      
+      if (existingDecisionsByExtId.has(decision.externalId)) {
+        preview.decisions.skip.push(decision);
+      } else {
+        preview.decisions.create.push(decision);
+      }
+    });
+
+    // Process habit logs - composite deduplication
+    const habitExtIdMap = new Map(sections.habits.map(h => [h.id, h.externalId]));
     
-    preview.habitLogs.create = preview.habitLogs.create.filter(log => !preview.habitLogs.skip.includes(log));
-    preview.habitLogs.update = preview.habitLogs.update.filter(log => !preview.habitLogs.skip.includes(log));
+    sections.habitLogs.forEach(log => {
+      if (!log.externalId) {
+        log.externalId = generateExternalId();
+      }
+      
+      // Find habit's externalId (from backup or existing)
+      let habitExternalId = habitExtIdMap.get(log.habitId);
+      if (!habitExternalId) {
+        const existingHabit = existingHabits.find(h => h.id === log.habitId);
+        habitExternalId = existingHabit?.externalId;
+      }
+      
+      if (!habitExternalId) {
+        // Habit doesn't exist - skip this log
+        preview.habitLogs.skip.push(log);
+        return;
+      }
+      
+      const logKey = `${habitExternalId}:${log.date}`;
+      if (existingLogKeys.has(logKey)) {
+        // Duplicate log for same habit+date
+        preview.habitLogs.skip.push(log);
+      } else {
+        preview.habitLogs.create.push(log);
+        existingLogKeys.add(logKey); // Track to avoid duplicates within this import
+      }
+    });
 
     return preview;
   };
@@ -98,57 +182,59 @@ export default function ImportService({ userProfile, onComplete }) {
   const executeImport = async (sections, preview) => {
     const currentUserId = userProfile.id;
     const results = {
-      habits: { created: 0, updated: 0, skipped: 0, errors: [] },
-      habitLogs: { created: 0, updated: 0, skipped: 0, errors: [] },
-      journalEntries: { created: 0, updated: 0, skipped: 0, errors: [] },
-      decisions: { created: 0, updated: 0, skipped: 0, errors: [] }
+      habits: { created: 0, skipped: 0, errors: [] },
+      habitLogs: { created: 0, skipped: 0, errors: [] },
+      journalEntries: { created: 0, skipped: 0, errors: [] },
+      decisions: { created: 0, skipped: 0, errors: [] }
     };
+
+    // Fetch existing habits to map externalIds to internal IDs
+    const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
+    const habitExtIdToInternalId = new Map(
+      existingHabits.filter(h => h.externalId).map(h => [h.externalId, h.id])
+    );
 
     // Import habits
     for (const habit of preview.habits.create) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = habit;
-        await base44.entities.Habit.create({
+        const newHabit = await base44.entities.Habit.create({
           ...data,
           userId: currentUserId
         });
+        // Track the new mapping
+        habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
         results.habits.created++;
       } catch (error) {
         results.habits.errors.push(`Failed to create habit "${habit.name}": ${error.message}`);
       }
     }
 
-    for (const habit of preview.habits.update) {
-      try {
-        const { created_date, updated_date, created_by, userId, ...data } = habit;
-        await base44.entities.Habit.update(habit.id, data);
-        results.habits.updated++;
-      } catch (error) {
-        results.habits.errors.push(`Failed to update habit "${habit.name}": ${error.message}`);
-      }
-    }
+    results.habits.skipped = preview.habits.skip.length;
 
     // Import habit logs
     for (const log of preview.habitLogs.create) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = log;
+        
+        // Map habitId from backup to actual internal ID
+        const habitFromBackup = sections.habits.find(h => h.id === log.habitId);
+        const habitExternalId = habitFromBackup?.externalId;
+        const actualHabitId = habitExternalId ? habitExtIdToInternalId.get(habitExternalId) : log.habitId;
+        
+        if (!actualHabitId) {
+          results.habitLogs.errors.push(`Failed to create log: habit not found`);
+          continue;
+        }
+        
         await base44.entities.HabitLog.create({
           ...data,
+          habitId: actualHabitId,
           userId: currentUserId
         });
         results.habitLogs.created++;
       } catch (error) {
         results.habitLogs.errors.push(`Failed to create log: ${error.message}`);
-      }
-    }
-
-    for (const log of preview.habitLogs.update) {
-      try {
-        const { created_date, updated_date, created_by, userId, ...data } = log;
-        await base44.entities.HabitLog.update(log.id, data);
-        results.habitLogs.updated++;
-      } catch (error) {
-        results.habitLogs.errors.push(`Failed to update log: ${error.message}`);
       }
     }
 
@@ -168,15 +254,7 @@ export default function ImportService({ userProfile, onComplete }) {
       }
     }
 
-    for (const entry of preview.journalEntries.update) {
-      try {
-        const { created_date, updated_date, created_by, userId, ...data } = entry;
-        await base44.entities.JournalEntry.update(entry.id, data);
-        results.journalEntries.updated++;
-      } catch (error) {
-        results.journalEntries.errors.push(`Failed to update journal "${entry.title || 'Untitled'}": ${error.message}`);
-      }
-    }
+    results.journalEntries.skipped = preview.journalEntries.skip.length;
 
     // Import decisions
     for (const decision of preview.decisions.create) {
@@ -192,15 +270,7 @@ export default function ImportService({ userProfile, onComplete }) {
       }
     }
 
-    for (const decision of preview.decisions.update) {
-      try {
-        const { created_date, updated_date, created_by, userId, ...data } = decision;
-        await base44.entities.Decision.update(decision.id, data);
-        results.decisions.updated++;
-      } catch (error) {
-        results.decisions.errors.push(`Failed to update decision "${decision.title}": ${error.message}`);
-      }
-    }
+    results.decisions.skipped = preview.decisions.skip.length;
 
     return results;
   };
@@ -303,7 +373,6 @@ export default function ImportService({ userProfile, onComplete }) {
 
   if (stage === 'preview') {
     const totalCreate = Object.values(importPreview).reduce((sum, section) => sum + section.create.length, 0);
-    const totalUpdate = Object.values(importPreview).reduce((sum, section) => sum + section.update.length, 0);
     const totalSkip = Object.values(importPreview).reduce((sum, section) => sum + section.skip.length, 0);
 
     return (
@@ -329,29 +398,25 @@ export default function ImportService({ userProfile, onComplete }) {
               <span>Records to create:</span>
               <span className="font-semibold" style={{ color: '#C9A227' }}>{totalCreate}</span>
             </div>
-            <div className="flex justify-between" style={{ color: '#E8EAF0' }}>
-              <span>Records to update:</span>
-              <span className="font-semibold" style={{ color: '#C9A227' }}>{totalUpdate}</span>
-            </div>
             {totalSkip > 0 && (
               <div className="flex justify-between" style={{ color: '#E8EAF0' }}>
-                <span>Records to skip:</span>
+                <span>Duplicates to skip:</span>
                 <span className="font-semibold" style={{ color: '#9AA3B2' }}>{totalSkip}</span>
               </div>
             )}
           </div>
 
           <div className="mt-4 pt-3 space-y-1 text-xs" style={{ borderTop: '1px solid #0F1115', color: '#9AA3B2' }}>
-            <p>Habits: {importPreview.habits.create.length} new, {importPreview.habits.update.length} update</p>
-            <p>Habit logs: {importPreview.habitLogs.create.length} new, {importPreview.habitLogs.update.length} update, {importPreview.habitLogs.skip.length} skip</p>
-            <p>Journal entries: {importPreview.journalEntries.create.length} new, {importPreview.journalEntries.update.length} update</p>
-            <p>Decisions: {importPreview.decisions.create.length} new, {importPreview.decisions.update.length} update</p>
+            <p>Habits: {importPreview.habits.create.length} new, {importPreview.habits.skip.length} duplicates</p>
+            <p>Habit logs: {importPreview.habitLogs.create.length} new, {importPreview.habitLogs.skip.length} duplicates</p>
+            <p>Journal entries: {importPreview.journalEntries.create.length} new, {importPreview.journalEntries.skip.length} duplicates</p>
+            <p>Decisions: {importPreview.decisions.create.length} new, {importPreview.decisions.skip.length} duplicates</p>
           </div>
 
           {totalSkip > 0 && (
             <div className="mt-3 p-2" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
               <p className="text-xs" style={{ color: '#9AA3B2' }}>
-                Some habit logs will be skipped because they reference habits not in the backup or your account.
+                {totalSkip} duplicate record{totalSkip !== 1 ? 's' : ''} detected. These will be skipped to prevent duplication.
               </p>
             </div>
           )}
@@ -398,7 +463,6 @@ export default function ImportService({ userProfile, onComplete }) {
 
   if (stage === 'complete') {
     const totalCreated = Object.values(importResult).reduce((sum, section) => sum + section.created, 0);
-    const totalUpdated = Object.values(importResult).reduce((sum, section) => sum + section.updated, 0);
     const totalSkipped = Object.values(importResult).reduce((sum, section) => sum + section.skipped, 0);
     const hasErrors = Object.values(importResult).some(section => section.errors.length > 0);
 
@@ -417,23 +481,19 @@ export default function ImportService({ userProfile, onComplete }) {
               <span>Records created:</span>
               <span className="font-semibold" style={{ color: '#C9A227' }}>{totalCreated}</span>
             </div>
-            <div className="flex justify-between" style={{ color: '#E8EAF0' }}>
-              <span>Records updated:</span>
-              <span className="font-semibold" style={{ color: '#C9A227' }}>{totalUpdated}</span>
-            </div>
             {totalSkipped > 0 && (
               <div className="flex justify-between" style={{ color: '#E8EAF0' }}>
-                <span>Records skipped:</span>
+                <span>Duplicates skipped:</span>
                 <span className="font-semibold" style={{ color: '#9AA3B2' }}>{totalSkipped}</span>
               </div>
             )}
           </div>
 
           <div className="pt-3 space-y-1 text-xs" style={{ borderTop: '1px solid #0F1115', color: '#9AA3B2' }}>
-            <p>Habits: {importResult.habits.created} created, {importResult.habits.updated} updated</p>
-            <p>Habit logs: {importResult.habitLogs.created} created, {importResult.habitLogs.updated} updated, {importResult.habitLogs.skipped} skipped</p>
-            <p>Journal entries: {importResult.journalEntries.created} created, {importResult.journalEntries.updated} updated</p>
-            <p>Decisions: {importResult.decisions.created} created, {importResult.decisions.updated} updated</p>
+            <p>Habits: {importResult.habits.created} created, {importResult.habits.skipped} skipped</p>
+            <p>Habit logs: {importResult.habitLogs.created} created, {importResult.habitLogs.skipped} skipped</p>
+            <p>Journal entries: {importResult.journalEntries.created} created, {importResult.journalEntries.skipped} skipped</p>
+            <p>Decisions: {importResult.decisions.created} created, {importResult.decisions.skipped} skipped</p>
           </div>
 
           {hasErrors && (

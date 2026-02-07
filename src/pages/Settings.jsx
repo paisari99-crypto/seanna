@@ -140,18 +140,48 @@ export default function Settings() {
     }
   };
 
+  const generateExternalId = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const ensureExternalIds = async (records, entityName) => {
+    const updates = [];
+    for (const record of records) {
+      if (!record.externalId) {
+        const externalId = generateExternalId();
+        updates.push(
+          base44.entities[entityName].update(record.id, { externalId })
+            .then(() => ({ ...record, externalId }))
+        );
+      } else {
+        updates.push(Promise.resolve(record));
+      }
+    }
+    return Promise.all(updates);
+  };
+
   const handleExportJSON = async () => {
     setBackupExporting(true);
     setBackupMessage('');
     try {
       // Fetch all user data
-      const habits = await base44.entities.Habit.filter({ userId: userProfile.id });
-      const logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
-      const journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
-      const decisions = await base44.entities.Decision.filter({ userId: userProfile.id });
+      let habits = await base44.entities.Habit.filter({ userId: userProfile.id });
+      let logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
+      let journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
+      let decisions = await base44.entities.Decision.filter({ userId: userProfile.id });
+      
+      // Ensure all records have externalIds
+      habits = await ensureExternalIds(habits, 'Habit');
+      logs = await ensureExternalIds(logs, 'HabitLog');
+      journalEntries = await ensureExternalIds(journalEntries, 'JournalEntry');
+      decisions = await ensureExternalIds(decisions, 'Decision');
       
       const backup = {
-        version: '1.0.0',
+        version: '2.0.0',
         exportDate: new Date().toISOString(),
         userProfile: {
           displayName: userProfile.displayName,
