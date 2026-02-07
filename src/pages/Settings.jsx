@@ -2,8 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft, Moon } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +30,10 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
+  const [quietHoursStart, setQuietHoursStart] = useState('22:00');
+  const [quietHoursEnd, setQuietHoursEnd] = useState('08:00');
+  const [savingQuietHours, setSavingQuietHours] = useState(false);
 
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -37,7 +45,11 @@ export default function Settings() {
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email });
         
         if (userProfiles.length > 0) {
-          setUserProfile(userProfiles[0]);
+          const profile = userProfiles[0];
+          setUserProfile(profile);
+          setQuietHoursEnabled(profile.quietHoursEnabled || false);
+          setQuietHoursStart(profile.quietHoursStart || '22:00');
+          setQuietHoursEnd(profile.quietHoursEnd || '08:00');
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -79,6 +91,53 @@ export default function Settings() {
       setDeleteMessage('Failed to request deletion. Please try again.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleQuietHoursToggle = async (checked) => {
+    setSavingQuietHours(true);
+    try {
+      setQuietHoursEnabled(checked);
+      await base44.entities.UserProfile.update(userProfile.id, { 
+        quietHoursEnabled: checked,
+        quietHoursStart,
+        quietHoursEnd
+      });
+      toast.success(checked ? 'Quiet hours enabled' : 'Quiet hours disabled');
+    } catch (error) {
+      console.error('Error updating quiet hours:', error);
+      toast.error('Failed to update');
+    } finally {
+      setSavingQuietHours(false);
+    }
+  };
+
+  const handleQuietHoursTimeChange = async (field, value) => {
+    if (!value) return;
+    
+    setSavingQuietHours(true);
+    try {
+      if (field === 'start') {
+        setQuietHoursStart(value);
+        await base44.entities.UserProfile.update(userProfile.id, { 
+          quietHoursStart: value,
+          quietHoursEnabled,
+          quietHoursEnd
+        });
+      } else {
+        setQuietHoursEnd(value);
+        await base44.entities.UserProfile.update(userProfile.id, { 
+          quietHoursEnd: value,
+          quietHoursEnabled,
+          quietHoursStart
+        });
+      }
+      toast.success('Quiet hours updated');
+    } catch (error) {
+      console.error('Error updating quiet hours:', error);
+      toast.error('Failed to update');
+    } finally {
+      setSavingQuietHours(false);
     }
   };
 
@@ -141,6 +200,80 @@ export default function Settings() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Quiet Hours */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Moon size={18} style={{ color: '#C9A227' }} />
+                <h2 className="text-lg font-semibold" style={{ color: '#E8EAF0' }}>
+                  Quiet hours
+                </h2>
+              </div>
+              
+              <div className="flex items-center justify-between mb-3">
+                <Label htmlFor="quiet-hours-toggle" style={{ color: '#E8EAF0' }}>
+                  Enable quiet hours
+                </Label>
+                <Switch
+                  id="quiet-hours-toggle"
+                  checked={quietHoursEnabled}
+                  onCheckedChange={handleQuietHoursToggle}
+                  disabled={savingQuietHours}
+                />
+              </div>
+              
+              {quietHoursEnabled && (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="quiet-start" className="text-sm mb-2 block" style={{ color: '#9AA3B2' }}>
+                      Start time
+                    </Label>
+                    <Input
+                      id="quiet-start"
+                      type="time"
+                      value={quietHoursStart}
+                      onChange={(e) => handleQuietHoursTimeChange('start', e.target.value)}
+                      disabled={savingQuietHours}
+                      style={{
+                        backgroundColor: '#0F1115',
+                        color: '#E8EAF0',
+                        border: '1px solid #2A2F3A',
+                        borderRadius: '12px'
+                      }}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="quiet-end" className="text-sm mb-2 block" style={{ color: '#9AA3B2' }}>
+                      End time
+                    </Label>
+                    <Input
+                      id="quiet-end"
+                      type="time"
+                      value={quietHoursEnd}
+                      onChange={(e) => handleQuietHoursTimeChange('end', e.target.value)}
+                      disabled={savingQuietHours}
+                      style={{
+                        backgroundColor: '#0F1115',
+                        color: '#E8EAF0',
+                        border: '1px solid #2A2F3A',
+                        borderRadius: '12px'
+                      }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs" style={{ color: '#9AA3B2' }}>
+                    Reminders will not be sent during quiet hours
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Card 2: Export my data */}
