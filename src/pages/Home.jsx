@@ -168,6 +168,7 @@ export default function Home() {
         <WeeklySummary 
           thisWeekCount={thisWeekCount}
           lastWeekCount={lastWeekCount}
+          totalHabits={totalActiveHabits}
         />
 
         <div className="grid grid-cols-2 gap-3">

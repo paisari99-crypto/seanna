@@ -1,3 +1,4 @@
+css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -59,5 +60,16 @@
   
   .btn {
     @apply rounded-[18px] px-4 py-2 bg-[#C9A227] text-[#0F1115] font-semibold;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

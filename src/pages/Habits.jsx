@@ -19,6 +19,7 @@ export default function Habits() {
   const [showDuplicatesDialog, setShowDuplicatesDialog] = useState(false);
   const [highlightedHabit, setHighlightedHabit] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [animatingHabit, setAnimatingHabit] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -149,6 +150,12 @@ export default function Habits() {
   const handleQuickLog = async (habit, status, event) => {
     event.preventDefault();
     event.stopPropagation();
+    
+    // Trigger animation for 'done' status
+    if (status === 'done') {
+      setAnimatingHabit(habit.id);
+      setTimeout(() => setAnimatingHabit(null), 500);
+    }
     
     try {
       const currentUser = await base44.auth.me();
@@ -281,7 +288,9 @@ export default function Habits() {
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
-                    borderRadius: '12px'
+                    borderRadius: '12px',
+                    transform: animatingHabit === habit.id ? 'scale(1.1)' : 'scale(1)',
+                    transition: 'all 0.3s ease'
                   }}
                 >
                   <Check size={12} />

@@ -40,6 +40,9 @@ export default function HabitDetail() {
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
   const [savingReminder, setSavingReminder] = useState(false);
+  const [showMilestone, setShowMilestone] = useState(false);
+  const [milestoneReached, setMilestoneReached] = useState(null);
+  const [doneAnimation, setDoneAnimation] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -109,6 +112,12 @@ export default function HabitDetail() {
     if (!userId || !habit) return;
 
     try {
+      // Trigger animation for 'done' status
+      if (status === 'done') {
+        setDoneAnimation(true);
+        setTimeout(() => setDoneAnimation(false), 500);
+      }
+
       if (todayLog) {
         // Update existing log
         const updated = await base44.entities.HabitLog.update(todayLog.id, { status });
@@ -122,6 +131,15 @@ export default function HabitDetail() {
         const todayDate = getUserToday(userProfile);
         const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
+        
+        // Check for milestone
+        const milestones = [3, 7, 14, 30];
+        if (status === 'done' && milestones.includes(current)) {
+          setMilestoneReached(current);
+          setShowMilestone(true);
+          setTimeout(() => setShowMilestone(false), 4000);
+        }
+        
         setCurrentStreak(current);
         setBestStreak(best);
       } else {
@@ -145,6 +163,15 @@ export default function HabitDetail() {
         const todayDate = getUserToday(userProfile);
         const current = calculateCurrentStreak(allLogs, todayDate);
         const best = calculateBestStreak(allLogs);
+        
+        // Check for milestone
+        const milestones = [3, 7, 14, 30];
+        if (status === 'done' && milestones.includes(current)) {
+          setMilestoneReached(current);
+          setShowMilestone(true);
+          setTimeout(() => setShowMilestone(false), 4000);
+        }
+        
         setCurrentStreak(current);
         setBestStreak(best);
         
@@ -265,8 +292,32 @@ export default function HabitDetail() {
     return null;
   }
 
+  const getMilestoneBadge = (streak) => {
+    if (streak >= 30) return '🔥';
+    if (streak >= 14) return '⭐';
+    if (streak >= 7) return '✨';
+    if (streak >= 3) return '💫';
+    return null;
+  };
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
+      {/* Milestone celebration banner */}
+      {showMilestone && (
+        <div
+          className="fixed top-0 left-0 right-0 z-50 p-4 text-center transition-all"
+          style={{
+            backgroundColor: '#C9A227',
+            color: '#0F1115',
+            animation: 'slideDown 0.3s ease-out'
+          }}
+        >
+          <p className="font-semibold">
+            {milestoneReached}-day streak achieved
+          </p>
+        </div>
+      )}
+
       <div className="p-6">
         <button
           onClick={() => navigate(-1)}
@@ -323,7 +374,11 @@ export default function HabitDetail() {
           <div className="flex gap-2">
             <button
               onClick={() => handleStatusClick('done')}
-              style={getStatusStyle('done', todayLog?.status === 'done')}
+              style={{
+                ...getStatusStyle('done', todayLog?.status === 'done'),
+                transform: doneAnimation ? 'scale(1.05)' : 'scale(1)',
+                transition: 'all 0.3s ease'
+              }}
               onMouseEnter={(e) => {
                 if (todayLog?.status === 'done') {
                   e.currentTarget.style.filter = 'brightness(1.1)';
@@ -339,6 +394,9 @@ export default function HabitDetail() {
                 }
               }}
             >
+              {doneAnimation && todayLog?.status !== 'done' && (
+                <span className="inline-block mr-1">✓</span>
+              )}
               Done
             </button>
             <button
@@ -397,8 +455,11 @@ export default function HabitDetail() {
               <span className="text-sm" style={{ color: '#9AA3B2' }}>
                 Current streak:
               </span>
-              <span className="text-lg font-semibold" style={{ color: '#E8EAF0' }}>
+              <span className="text-lg font-semibold flex items-center gap-1" style={{ color: '#E8EAF0' }}>
                 {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+                {getMilestoneBadge(currentStreak) && (
+                  <span className="text-xl">{getMilestoneBadge(currentStreak)}</span>
+                )}
               </span>
             </div>
             <div className="flex items-baseline gap-2 mb-4">
