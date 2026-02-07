@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { requestNotificationPermission } from '../components/notificationUtils';
 import { getUserToday, getUserDate, calculateCurrentStreak, calculateBestStreak } from '../components/dateUtils';
+import { SkeletonCard, SkeletonStat } from '../components/SkeletonLoader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,12 +119,17 @@ export default function HabitDetail() {
         setTimeout(() => setDoneAnimation(false), 500);
       }
 
+      const isFirstLogEver = recentLogs.length === 0;
+
       if (todayLog) {
-        // Update existing log
+        // Optimistic update
+        const optimisticLog = { ...todayLog, status };
+        setTodayLog(optimisticLog);
+        setRecentLogs(prev => prev.map(log => log.id === todayLog.id ? optimisticLog : log));
+        
+        // Background sync
         const updated = await base44.entities.HabitLog.update(todayLog.id, { status });
         setTodayLog(updated);
-        
-        // Update recent logs
         setRecentLogs(prev => prev.map(log => log.id === updated.id ? updated : log));
         
         // Recalculate streaks
@@ -143,10 +149,18 @@ export default function HabitDetail() {
         setCurrentStreak(current);
         setBestStreak(best);
       } else {
-        // Check if this is the first habit log ever
-        const isFirstLogEver = recentLogs.length === 0;
+        // Optimistic update for new log
+        const tempLog = {
+          id: 'temp-' + Date.now(),
+          habitId: habit.id,
+          userId,
+          date: today,
+          status
+        };
+        setTodayLog(tempLog);
+        setRecentLogs(prev => [tempLog, ...prev]);
         
-        // Create new log
+        // Background sync
         const newLog = await base44.entities.HabitLog.create({
           habitId: habit.id,
           userId,
@@ -154,9 +168,7 @@ export default function HabitDetail() {
           status
         });
         setTodayLog(newLog);
-        
-        // Add to recent logs
-        setRecentLogs(prev => [newLog, ...prev]);
+        setRecentLogs(prev => [newLog, ...prev.filter(l => l.id !== tempLog.id)]);
         
         // Recalculate streaks
         const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
@@ -185,6 +197,7 @@ export default function HabitDetail() {
       }
     } catch (error) {
       console.error('Error updating habit log:', error);
+      toast.error('Failed to update');
     }
   };
 
@@ -281,8 +294,14 @@ export default function HabitDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-6 pb-20" style={{ backgroundColor: '#0F1115' }}>
-        <p style={{ color: '#9AA3B2' }}>Loading...</p>
+      <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
+        <div className="p-6 space-y-4">
+          <div className="h-6 w-6" style={{ backgroundColor: '#2A2F3A', borderRadius: '8px' }} />
+          <div className="h-8 w-3/4 mb-2" style={{ backgroundColor: '#2A2F3A', borderRadius: '8px' }} />
+          <SkeletonStat />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
         <BottomNav />
       </div>
     );
@@ -318,10 +337,10 @@ export default function HabitDetail() {
         </div>
       )}
 
-      <div className="p-6">
+      <div className="p-6 animate-fadeIn">
         <button
           onClick={() => navigate(-1)}
-          className="mb-4 p-2"
+          className="mb-4 p-2 transition-colors hover:opacity-70"
           style={{ color: '#9AA3B2' }}
         >
           <ArrowLeft size={24} />

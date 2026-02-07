@@ -8,6 +8,7 @@ import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
 import { getUserToday, calculateCurrentStreak } from '../components/dateUtils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { SkeletonCard } from '../components/SkeletonLoader';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
@@ -164,7 +165,13 @@ export default function Habits() {
       const userId = profile?.id;
       const today = getUserToday(profile);
       
-      // Create or update today's log
+      // Optimistic update - update UI immediately
+      setHabitTodayStatus(prev => ({ ...prev, [habit.id]: status }));
+      setHabitCompletedToday(prev => ({ ...prev, [habit.id]: status === 'done' }));
+      setHighlightedHabit(habit.id);
+      setTimeout(() => setHighlightedHabit(null), 1000);
+      
+      // Background sync
       const todayLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId, date: today });
       
       if (todayLogs.length > 0) {
@@ -178,23 +185,16 @@ export default function Habits() {
         });
       }
       
-      // Update UI
-      setHabitTodayStatus(prev => ({ ...prev, [habit.id]: status }));
-      setHabitCompletedToday(prev => ({ ...prev, [habit.id]: status === 'done' }));
-      
-      // Recalculate streak
+      // Recalculate streak in background
       const allLogs = await base44.entities.HabitLog.filter({ habitId: habit.id, userId }, '-date');
       const newStreak = calculateCurrentStreak(allLogs, today);
       setHabitStreaks(prev => ({ ...prev, [habit.id]: newStreak }));
-      
-      // Highlight card
-      setHighlightedHabit(habit.id);
-      setTimeout(() => setHighlightedHabit(null), 1000);
-      
-      // Show toast
-      toast.success('Logged');
     } catch (error) {
       console.error('Error logging habit:', error);
+      // Revert optimistic update on error
+      const todayStatus = habitTodayStatus[habit.id];
+      setHabitTodayStatus(prev => ({ ...prev, [habit.id]: todayStatus }));
+      setHabitCompletedToday(prev => ({ ...prev, [habit.id]: todayStatus === 'done' }));
       toast.error('Failed to log');
     }
   };
@@ -382,13 +382,38 @@ export default function Habits() {
         )}
 
         {loading ? (
-          <p style={{ color: '#9AA3B2' }}>Loading...</p>
+          <div className="space-y-3">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
         ) : habits.length === 0 ? (
-          <div className="text-center py-12">
-            <p style={{ color: '#9AA3B2' }}>No active habits yet. Tap New to create one.</p>
+          <div className="text-center py-12 animate-fadeIn">
+            <div className="mb-4">
+              <Target size={48} className="mx-auto mb-2" style={{ color: '#C9A227', opacity: 0.3 }} />
+            </div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+              No active habits yet
+            </h3>
+            <p className="text-sm mb-4" style={{ color: '#9AA3B2' }}>
+              Create your first habit to start building systems.
+            </p>
+            <Link
+              to={createPageUrl('HabitNew')}
+              className="inline-flex items-center gap-2 px-6 py-3"
+              style={{
+                backgroundColor: '#C9A227',
+                color: '#0F1115',
+                borderRadius: '18px',
+                fontWeight: 600
+              }}
+            >
+              <Plus size={18} />
+              Create first habit
+            </Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-fadeIn">
             {(() => {
               // Sort habits: incomplete first, then by streak descending
               const incomplete = habits.filter(h => !habitCompletedToday[h.id])
@@ -403,7 +428,11 @@ export default function Habits() {
                       <h4 className="text-xs font-semibold mb-2 mt-2" style={{ color: '#9AA3B2', opacity: 0.7 }}>
                         Needs attention
                       </h4>
-                      {incomplete.map((habit) => renderHabitCard(habit))}
+                      {incomplete.map((habit, index) => (
+                        <div key={habit.id} className="animate-slideUp" style={{ animationDelay: `${index * 30}ms` }}>
+                          {renderHabitCard(habit)}
+                        </div>
+                      ))}
                     </>
                   )}
                   {completed.length > 0 && (
@@ -411,7 +440,11 @@ export default function Habits() {
                       <h4 className="text-xs font-semibold mb-2 mt-4" style={{ color: '#9AA3B2', opacity: 0.7 }}>
                         Completed today
                       </h4>
-                      {completed.map((habit) => renderHabitCard(habit))}
+                      {completed.map((habit, index) => (
+                        <div key={habit.id} className="animate-slideUp" style={{ animationDelay: `${index * 30}ms` }}>
+                          {renderHabitCard(habit)}
+                        </div>
+                      ))}
                     </>
                   )}
                 </>

@@ -9,6 +9,7 @@ import TodaySummary from '../components/TodaySummary';
 import WeeklySummary from '../components/WeeklySummary';
 import { getUserToday, getStartOfWeek } from '../components/dateUtils';
 import { format } from 'date-fns';
+import { SkeletonCard, SkeletonStat } from '../components/SkeletonLoader';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -92,8 +93,32 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-6" style={{ backgroundColor: '#0F1115' }}>
-        <p style={{ color: '#9AA3B2' }}>Loading...</p>
+      <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
+        <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+                Seanna
+              </h1>
+              <p className="text-lg" style={{ color: '#9AA3B2' }}>
+                Your cognitive toolkit
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 pb-8 space-y-3">
+          <SkeletonStat />
+          <SkeletonStat />
+          <div className="grid grid-cols-2 gap-3">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </div>
+        
+        <BottomNav />
       </div>
     );
   }
@@ -151,7 +176,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-4 pb-8">
+      <div className="px-4 pb-8 animate-fadeIn">
         <GuidanceCard 
           habitCount={habitCount} 
           hasLoggedToday={hasLoggedToday} 
@@ -172,13 +197,14 @@ export default function Home() {
         />
 
         <div className="grid grid-cols-2 gap-3">
-          {cards.map((card) => {
+          {cards.map((card, index) => {
             const Icon = card.icon;
             return (
               <Link
                 key={card.id}
                 to={createPageUrl(card.page)}
-                className="block transition-transform hover:scale-105"
+                className="block transition-all duration-150 hover:scale-105 animate-slideUp"
+                style={{ animationDelay: `${index * 30}ms` }}
               >
                 <div
                   className="p-4 shadow-lg"

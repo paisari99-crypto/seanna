@@ -5,6 +5,7 @@ import BottomNav from '../components/BottomNav';
 import WeeklyPatternCard from '../components/WeeklyPatternCard';
 import { getMostConsistentHabit, getMostMissedHabit, getBestWeekday } from '../components/insightUtils';
 import { getMostConsistentHabit as getConsistent, getNeedsAttentionHabit, getStrongestDay } from '../components/analyticsUtils';
+import { SkeletonCard, SkeletonInsightCard } from '../components/SkeletonLoader';
 
 export default function Insights() {
   const [metrics, setMetrics] = useState({
@@ -243,13 +244,24 @@ Provide a structured weekly review in the following JSON format:
         </div>
 
         {loading ? (
-          <p style={{ color: '#9AA3B2' }}>Loading...</p>
+          <div className="space-y-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <div className="p-5" style={{ backgroundColor: '#1A1D24', borderRadius: '18px' }}>
+              <div className="space-y-3">
+                <SkeletonInsightCard />
+                <SkeletonInsightCard />
+                <SkeletonInsightCard />
+              </div>
+            </div>
+          </div>
         ) : !userProfile ? (
           <div className="text-center py-12">
             <p style={{ color: '#9AA3B2' }}>Insights will appear after you start using Seanna.</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fadeIn">
             <WeeklyPatternCard 
               mostConsistent={mostConsistentHabit}
               mostMissed={mostMissedHabit}
