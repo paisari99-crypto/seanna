@@ -34,6 +34,9 @@ export default function Settings() {
   const [savingQuietHours, setSavingQuietHours] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticsData, setDiagnosticsData] = useState(null);
+  const [showIsolationCheck, setShowIsolationCheck] = useState(false);
+  const [isolationData, setIsolationData] = useState(null);
+  const [runningIsolationCheck, setRunningIsolationCheck] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [backupExporting, setBackupExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -277,6 +280,69 @@ export default function Settings() {
     } finally {
       setImporting(false);
       event.target.value = '';
+    }
+  };
+
+  const handleIsolationCheck = async () => {
+    setRunningIsolationCheck(true);
+    try {
+      const currentUser = await base44.auth.me();
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      const userId = userProfiles[0]?.id;
+
+      if (!userId) {
+        setIsolationData({ error: 'No user profile found' });
+        return;
+      }
+
+      // Fetch all data
+      const habits = await base44.entities.Habit.filter({ userId });
+      const habitLogs = await base44.entities.HabitLog.filter({ userId });
+      const journals = await base44.entities.JournalEntry.filter({ userId });
+      const decisions = await base44.entities.Decision.filter({ userId });
+      const options = await base44.entities.DecisionOption.filter({ userId });
+      const criteria = await base44.entities.DecisionCriterion.filter({ userId });
+      const scores = await base44.entities.DecisionScore.filter({ userId });
+
+      // Check for ownership mismatches
+      const checkOwnership = (records, ownerField, modelName) => {
+        const mismatches = records.filter(r => r[ownerField] !== userId);
+        return {
+          total: records.length,
+          mismatches: mismatches.length,
+          model: modelName,
+          ownerField
+        };
+      };
+
+      const results = {
+        userProfile: { total: 1, mismatches: 0, model: 'UserProfile', ownerField: 'created_by' },
+        habits: checkOwnership(habits, 'userId', 'Habit'),
+        habitLogs: checkOwnership(habitLogs, 'userId', 'HabitLog'),
+        journals: checkOwnership(journals, 'userId', 'JournalEntry'),
+        decisions: checkOwnership(decisions, 'userId', 'Decision'),
+        options: checkOwnership(options, 'userId', 'DecisionOption'),
+        criteria: checkOwnership(criteria, 'userId', 'DecisionCriterion'),
+        scores: checkOwnership(scores, 'userId', 'DecisionScore')
+      };
+
+      const totalRecords = Object.values(results).reduce((sum, r) => sum + r.total, 0);
+      const totalMismatches = Object.values(results).reduce((sum, r) => sum + r.mismatches, 0);
+
+      setIsolationData({
+        userId,
+        userEmail: currentUser.email,
+        totalRecords,
+        totalMismatches,
+        details: results,
+        timestamp: new Date().toISOString()
+      });
+      setShowIsolationCheck(true);
+    } catch (error) {
+      console.error('Error running isolation check:', error);
+      setIsolationData({ error: error.message });
+    } finally {
+      setRunningIsolationCheck(false);
     }
   };
 
@@ -657,6 +723,93 @@ export default function Settings() {
               </div>
             )}
 
+            {/* Isolation Check Panel */}
+            {showIsolationCheck && isolationData && (
+              <div
+                className="p-4"
+                style={{
+                  backgroundColor: '#1A1D24',
+                  borderRadius: '18px',
+                  border: isolationData.totalMismatches > 0 ? '2px solid #ff6b6b' : '1px solid #2A2F3A'
+                }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                    Isolation Check
+                  </h2>
+                  <button
+                    onClick={() => setShowIsolationCheck(false)}
+                    className="text-xs"
+                    style={{ color: '#9AA3B2' }}
+                  >
+                    Hide
+                  </button>
+                </div>
+                
+                {isolationData.error ? (
+                  <p className="text-sm" style={{ color: '#ff6b6b' }}>
+                    Error: {isolationData.error}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                        User ID
+                      </p>
+                      <p className="text-xs font-mono" style={{ color: '#E8EAF0' }}>
+                        {isolationData.userId}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                        Total records
+                      </p>
+                      <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                        {isolationData.totalRecords}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: isolationData.totalMismatches > 0 ? '#ff6b6b' : '#9AA3B2' }}>
+                        Owner mismatches
+                      </p>
+                      <p className="text-sm font-bold" style={{ color: isolationData.totalMismatches > 0 ? '#ff6b6b' : '#C9A227' }}>
+                        {isolationData.totalMismatches} {isolationData.totalMismatches === 0 ? '✓' : '⚠'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs mb-2" style={{ color: '#9AA3B2' }}>
+                        Details
+                      </p>
+                      <div
+                        className="p-2 text-xs"
+                        style={{
+                          backgroundColor: '#0F1115',
+                          borderRadius: '8px',
+                          color: '#E8EAF0',
+                          fontFamily: 'monospace',
+                          maxHeight: '200px',
+                          overflow: 'auto'
+                        }}
+                      >
+                        {Object.entries(isolationData.details).map(([key, data]) => (
+                          <div key={key} className="mb-1">
+                            {data.model}: {data.total} records, {data.mismatches} mismatches
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+                      Checked: {new Date(isolationData.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Card 5: Developer */}
             <div
               className="p-5"
@@ -668,17 +821,32 @@ export default function Settings() {
               <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
                 Developer
               </h2>
-              <button
-                onClick={() => base44.auth.logout()}
-                className="w-full py-3 font-semibold"
-                style={{
-                  backgroundColor: '#C9A227',
-                  color: '#0F1115',
-                  borderRadius: '18px'
-                }}
-              >
-                Logout
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleIsolationCheck}
+                  disabled={runningIsolationCheck}
+                  className="w-full py-3 font-semibold"
+                  style={{
+                    backgroundColor: '#1A1D24',
+                    color: '#C9A227',
+                    borderRadius: '18px',
+                    opacity: runningIsolationCheck ? 0.5 : 1
+                  }}
+                >
+                  {runningIsolationCheck ? 'Running...' : 'Run isolation check'}
+                </button>
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="w-full py-3 font-semibold"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '18px'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
             </div>
 
             {/* Diagnostic Info */}

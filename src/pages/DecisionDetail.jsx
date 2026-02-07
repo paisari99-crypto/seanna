@@ -27,7 +27,12 @@ export default function DecisionDetail() {
           return;
         }
 
-        const decisions = await base44.entities.Decision.filter({ id });
+        const currentUser = await base44.auth.me();
+        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const currentUserId = userProfiles[0]?.id;
+        setUserId(currentUserId);
+
+        const decisions = await base44.entities.Decision.filter({ id, userId: currentUserId });
         if (decisions.length === 0) {
           navigate(createPageUrl('Decisions'));
           return;
@@ -35,24 +40,19 @@ export default function DecisionDetail() {
         
         setDecision(decisions[0]);
 
-        const currentUser = await base44.auth.me();
-        const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-        const currentUserId = userProfiles[0]?.id;
-        setUserId(currentUserId);
-
         const decisionOptions = await base44.entities.DecisionOption.filter(
-          { decisionId: id },
+          { decisionId: id, userId: currentUserId },
           '-created_date'
         );
         setOptions(decisionOptions);
 
         const decisionCriteria = await base44.entities.DecisionCriterion.filter(
-          { decisionId: id },
+          { decisionId: id, userId: currentUserId },
           '-created_date'
         );
         setCriteria(decisionCriteria);
 
-        const decisionScores = await base44.entities.DecisionScore.filter({ decisionId: id });
+        const decisionScores = await base44.entities.DecisionScore.filter({ decisionId: id, userId: currentUserId });
         const scoresMap = {};
         decisionScores.forEach(score => {
           const key = `${score.optionId}-${score.criterionId}`;
