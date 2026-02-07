@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { ChevronRight, ArrowLeft, Moon } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import ImportService from '../components/ImportService';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -39,8 +40,8 @@ export default function Settings() {
   const [runningIsolationCheck, setRunningIsolationCheck] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [backupExporting, setBackupExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
+  const [showImportService, setShowImportService] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -245,42 +246,10 @@ export default function Settings() {
     }
   };
 
-  const handleImportBackup = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    setImporting(true);
-    setBackupMessage('');
-    try {
-      const text = await file.text();
-      const backup = JSON.parse(text);
-      
-      // Validate backup structure
-      if (!backup.version || !backup.habits) {
-        throw new Error('Invalid backup file');
-      }
-      
-      // Import habits
-      let imported = 0;
-      for (const habit of backup.habits) {
-        const { id, created_date, updated_date, created_by, ...habitData } = habit;
-        await base44.entities.Habit.create({
-          ...habitData,
-          userId: userProfile.id
-        });
-        imported++;
-      }
-      
-      setBackupMessage(`Imported ${imported} habit${imported !== 1 ? 's' : ''} successfully`);
-      toast.success('Backup imported');
-    } catch (error) {
-      console.error('Error importing backup:', error);
-      setBackupMessage('Import failed - invalid file');
-      toast.error('Import failed');
-    } finally {
-      setImporting(false);
-      event.target.value = '';
-    }
+  const handleImportComplete = () => {
+    setShowImportService(false);
+    setBackupMessage('Import completed successfully');
+    toast.success('Backup imported');
   };
 
   const handleIsolationCheck = async () => {
@@ -495,13 +464,13 @@ export default function Settings() {
               <div className="space-y-2">
                 <button
                   onClick={handleExportJSON}
-                  disabled={backupExporting || importing}
+                  disabled={backupExporting || showImportService}
                   className="w-full py-3 font-semibold"
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '18px',
-                    opacity: (backupExporting || importing) ? 0.5 : 1
+                    opacity: (backupExporting || showImportService) ? 0.5 : 1
                   }}
                 >
                   {backupExporting ? 'Downloading...' : 'Download backup'}
@@ -509,36 +478,38 @@ export default function Settings() {
                 
                 <button
                   onClick={handleExportCSV}
-                  disabled={backupExporting || importing}
+                  disabled={backupExporting || showImportService}
                   className="w-full py-3 font-semibold"
                   style={{
                     backgroundColor: '#C9A227',
                     color: '#0F1115',
                     borderRadius: '18px',
-                    opacity: (backupExporting || importing) ? 0.5 : 1
+                    opacity: (backupExporting || showImportService) ? 0.5 : 1
                   }}
                 >
                   Export habits summary (CSV)
                 </button>
                 
-                <label
-                  className="w-full py-3 font-semibold block text-center cursor-pointer"
-                  style={{
-                    backgroundColor: '#C9A227',
-                    color: '#0F1115',
-                    borderRadius: '18px',
-                    opacity: (backupExporting || importing) ? 0.5 : 1
-                  }}
-                >
-                  {importing ? 'Importing...' : 'Import backup'}
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportBackup}
-                    disabled={backupExporting || importing}
-                    className="hidden"
+                {!showImportService ? (
+                  <button
+                    onClick={() => setShowImportService(true)}
+                    disabled={backupExporting}
+                    className="w-full py-3 font-semibold"
+                    style={{
+                      backgroundColor: '#C9A227',
+                      color: '#0F1115',
+                      borderRadius: '18px',
+                      opacity: backupExporting ? 0.5 : 1
+                    }}
+                  >
+                    Import backup
+                  </button>
+                ) : (
+                  <ImportService 
+                    userProfile={userProfile}
+                    onComplete={handleImportComplete}
                   />
-                </label>
+                )}
               </div>
               
               {backupMessage && (
