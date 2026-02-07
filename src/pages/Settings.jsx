@@ -26,7 +26,6 @@ export default function Settings() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [gdprExportMessage, setGdprExportMessage] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
@@ -36,7 +35,6 @@ export default function Settings() {
   const [savingQuietHours, setSavingQuietHours] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticsData, setDiagnosticsData] = useState(null);
-
   const [currentUser, setCurrentUser] = useState(null);
   const [backupExporting, setBackupExporting] = useState(false);
   const [importing, setImporting] = useState(false);
