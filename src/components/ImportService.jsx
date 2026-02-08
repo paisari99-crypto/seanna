@@ -20,17 +20,21 @@ export default function ImportService({ userProfile, onComplete }) {
   };
 
   const computeHabitKey = (habit) => {
+    if (!habit) return null;
     const name = (habit.name || '').toLowerCase().trim();
+    if (!name) return null;
     const scheduleType = habit.scheduleType || '';
     const description = (habit.description || '').toLowerCase().trim();
     return `${name}|${scheduleType}|${description}`;
   };
 
   const computeLogKey = (habitKey, date) => {
+    if (!habitKey || !date) return null;
     return `${habitKey}|${date}`;
   };
 
   const computeJournalKey = (entry) => {
+    if (!entry) return null;
     const createdDate = entry.created_date || '';
     const title = (entry.title || '').toLowerCase().trim();
     if (title) {
@@ -41,8 +45,10 @@ export default function ImportService({ userProfile, onComplete }) {
   };
 
   const computeDecisionKey = (decision) => {
+    if (!decision) return null;
     const createdDate = decision.created_date || '';
     const title = (decision.title || '').toLowerCase().trim();
+    if (!title) return null;
     const context = (decision.context || '').toLowerCase().trim();
     return `${createdDate}|${title}|${context}`;
   };
@@ -102,46 +108,72 @@ export default function ImportService({ userProfile, onComplete }) {
       const existingJournals = await base44.entities.JournalEntry.filter({ userId: currentUserId });
       const existingDecisions = await base44.entities.Decision.filter({ userId: currentUserId });
 
-    // Build lookup maps by externalId (primary) and content key (fallback)
-    const existingHabitsByExtId = new Map();
-    const existingHabitsByKey = new Map();
-    existingHabits.forEach(h => {
-      if (h.externalId) {
-        existingHabitsByExtId.set(h.externalId, h);
+      // Build lookup maps by externalId (primary) and content key (fallback) - defensive
+      const existingHabitsByExtId = new Map();
+      const existingHabitsByKey = new Map();
+      
+      if (Array.isArray(existingHabits)) {
+        existingHabits.forEach(h => {
+          if (h && h.externalId) {
+            existingHabitsByExtId.set(h.externalId, h);
+          }
+          if (h) {
+            const key = computeHabitKey(h);
+            if (key) {
+              existingHabitsByKey.set(key, h);
+            }
+          }
+        });
       }
-      const key = computeHabitKey(h);
-      existingHabitsByKey.set(key, h);
-    });
 
-    // Build log deduplication map: (habitExternalId + date) -> log
-    const existingLogsByCompositeKey = new Map();
-    existingLogs.forEach(log => {
-      const habit = existingHabits.find(h => h.id === log.habitId);
-      if (habit?.externalId) {
-        const key = `${habit.externalId}|${log.date}`;
-        existingLogsByCompositeKey.set(key, log);
+      // Build log deduplication map: (habitExternalId + date) -> log - defensive
+      const existingLogsByCompositeKey = new Map();
+      
+      if (Array.isArray(existingLogs) && Array.isArray(existingHabits)) {
+        existingLogs.forEach(log => {
+          if (log && log.habitId && log.date) {
+            const habit = existingHabits.find(h => h && h.id === log.habitId);
+            if (habit && habit.externalId) {
+              const key = `${habit.externalId}|${log.date}`;
+              existingLogsByCompositeKey.set(key, log);
+            }
+          }
+        });
       }
-    });
 
-    const existingJournalsByExtId = new Map();
-    const existingJournalsByKey = new Map();
-    existingJournals.forEach(j => {
-      if (j.externalId) {
-        existingJournalsByExtId.set(j.externalId, j);
+      const existingJournalsByExtId = new Map();
+      const existingJournalsByKey = new Map();
+      
+      if (Array.isArray(existingJournals)) {
+        existingJournals.forEach(j => {
+          if (j && j.externalId) {
+            existingJournalsByExtId.set(j.externalId, j);
+          }
+          if (j) {
+            const key = computeJournalKey(j);
+            if (key) {
+              existingJournalsByKey.set(key, j);
+            }
+          }
+        });
       }
-      const key = computeJournalKey(j);
-      existingJournalsByKey.set(key, j);
-    });
 
-    const existingDecisionsByExtId = new Map();
-    const existingDecisionsByKey = new Map();
-    existingDecisions.forEach(d => {
-      if (d.externalId) {
-        existingDecisionsByExtId.set(d.externalId, d);
+      const existingDecisionsByExtId = new Map();
+      const existingDecisionsByKey = new Map();
+      
+      if (Array.isArray(existingDecisions)) {
+        existingDecisions.forEach(d => {
+          if (d && d.externalId) {
+            existingDecisionsByExtId.set(d.externalId, d);
+          }
+          if (d) {
+            const key = computeDecisionKey(d);
+            if (key) {
+              existingDecisionsByKey.set(key, d);
+            }
+          }
+        });
       }
-      const key = computeDecisionKey(d);
-      existingDecisionsByKey.set(key, d);
-    });
 
     const preview = {
       habits: { create: [], skip: [] },
@@ -154,69 +186,81 @@ export default function ImportService({ userProfile, onComplete }) {
     // Track habit mappings for logs
     const habitExtIdToMatched = new Map(); // externalId from backup -> existing habit
 
-    // Process habits - prefer externalId, fallback to content key
-    sections.habits.forEach(habit => {
-      let matchedHabit = null;
-      
-      if (habit.externalId && existingHabitsByExtId.has(habit.externalId)) {
-        matchedHabit = existingHabitsByExtId.get(habit.externalId);
-      } else {
-        const habitKey = computeHabitKey(habit);
-        if (existingHabitsByKey.has(habitKey)) {
-          matchedHabit = existingHabitsByKey.get(habitKey);
-        }
+      // Process habits - prefer externalId, fallback to content key - defensive
+      if (Array.isArray(habits)) {
+        habits.forEach(habit => {
+          if (!habit) return;
+          
+          let matchedHabit = null;
+          
+          if (habit.externalId && existingHabitsByExtId.has(habit.externalId)) {
+            matchedHabit = existingHabitsByExtId.get(habit.externalId);
+          } else {
+            const habitKey = computeHabitKey(habit);
+            if (habitKey && existingHabitsByKey.has(habitKey)) {
+              matchedHabit = existingHabitsByKey.get(habitKey);
+            }
+          }
+          
+          if (matchedHabit) {
+            preview.habits.skip.push(habit);
+            // Track for log resolution
+            if (habit.externalId) {
+              habitExtIdToMatched.set(habit.externalId, matchedHabit);
+            }
+          } else {
+            preview.habits.create.push(habit);
+          }
+        });
       }
-      
-      if (matchedHabit) {
-        preview.habits.skip.push(habit);
-        // Track for log resolution
-        if (habit.externalId) {
-          habitExtIdToMatched.set(habit.externalId, matchedHabit);
-        }
-      } else {
-        preview.habits.create.push(habit);
-      }
-    });
 
-    // Process journal entries
-    sections.journalEntries.forEach(entry => {
-      let isDuplicate = false;
-      
-      if (entry.externalId && existingJournalsByExtId.has(entry.externalId)) {
-        isDuplicate = true;
-      } else {
-        const journalKey = computeJournalKey(entry);
-        if (existingJournalsByKey.has(journalKey)) {
-          isDuplicate = true;
-        }
+      // Process journal entries - defensive
+      if (Array.isArray(journalEntries)) {
+        journalEntries.forEach(entry => {
+          if (!entry) return;
+          
+          let isDuplicate = false;
+          
+          if (entry.externalId && existingJournalsByExtId.has(entry.externalId)) {
+            isDuplicate = true;
+          } else {
+            const journalKey = computeJournalKey(entry);
+            if (journalKey && existingJournalsByKey.has(journalKey)) {
+              isDuplicate = true;
+            }
+          }
+          
+          if (isDuplicate) {
+            preview.journalEntries.skip.push(entry);
+          } else {
+            preview.journalEntries.create.push(entry);
+          }
+        });
       }
-      
-      if (isDuplicate) {
-        preview.journalEntries.skip.push(entry);
-      } else {
-        preview.journalEntries.create.push(entry);
-      }
-    });
 
-    // Process decisions
-    sections.decisions.forEach(decision => {
-      let isDuplicate = false;
-      
-      if (decision.externalId && existingDecisionsByExtId.has(decision.externalId)) {
-        isDuplicate = true;
-      } else {
-        const decisionKey = computeDecisionKey(decision);
-        if (existingDecisionsByKey.has(decisionKey)) {
-          isDuplicate = true;
-        }
+      // Process decisions - defensive
+      if (Array.isArray(decisions)) {
+        decisions.forEach(decision => {
+          if (!decision) return;
+          
+          let isDuplicate = false;
+          
+          if (decision.externalId && existingDecisionsByExtId.has(decision.externalId)) {
+            isDuplicate = true;
+          } else {
+            const decisionKey = computeDecisionKey(decision);
+            if (decisionKey && existingDecisionsByKey.has(decisionKey)) {
+              isDuplicate = true;
+            }
+          }
+          
+          if (isDuplicate) {
+            preview.decisions.skip.push(decision);
+          } else {
+            preview.decisions.create.push(decision);
+          }
+        });
       }
-      
-      if (isDuplicate) {
-        preview.decisions.skip.push(decision);
-      } else {
-        preview.decisions.create.push(decision);
-      }
-    });
 
       // Process habit logs - only create logs for habits that will exist (defensive)
       const processedLogKeys = new Set();
@@ -281,7 +325,11 @@ export default function ImportService({ userProfile, onComplete }) {
         });
       }
 
-    return preview;
+      return preview;
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      throw new Error('Failed to generate import preview');
+    }
   };
 
   const executeImport = async (sections, preview, isNewFormat) => {
@@ -614,8 +662,12 @@ export default function ImportService({ userProfile, onComplete }) {
   }
 
   if (stage === 'preview') {
-    const totalCreate = Object.values(importPreview).reduce((sum, section) => sum + section.create.length, 0);
-    const totalSkip = Object.values(importPreview).reduce((sum, section) => sum + section.skip.length, 0);
+    const totalCreate = Object.values(importPreview || {}).reduce((sum, section) => {
+      return sum + (Array.isArray(section?.create) ? section.create.length : 0);
+    }, 0);
+    const totalSkip = Object.values(importPreview || {}).reduce((sum, section) => {
+      return sum + (Array.isArray(section?.skip) ? section.skip.length : 0);
+    }, 0);
 
     return (
       <div className="space-y-4">
@@ -713,9 +765,15 @@ export default function ImportService({ userProfile, onComplete }) {
   }
 
   if (stage === 'complete') {
-    const totalCreated = Object.values(importResult).reduce((sum, section) => sum + section.created, 0);
-    const totalSkipped = Object.values(importResult).reduce((sum, section) => sum + section.skipped, 0);
-    const hasErrors = Object.values(importResult).some(section => section.errors.length > 0);
+    const totalCreated = Object.values(importResult || {}).reduce((sum, section) => {
+      return sum + (section?.created || 0);
+    }, 0);
+    const totalSkipped = Object.values(importResult || {}).reduce((sum, section) => {
+      return sum + (section?.skipped || 0);
+    }, 0);
+    const hasErrors = Object.values(importResult || {}).some(section => 
+      Array.isArray(section?.errors) && section.errors.length > 0
+    );
 
     return (
       <div className="space-y-4">
