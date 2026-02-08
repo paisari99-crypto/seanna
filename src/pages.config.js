@@ -49,6 +49,8 @@
  */
 import About from './pages/About';
 import ArchivedHabits from './pages/ArchivedHabits';
+import DailyReview from './pages/DailyReview';
+import DailyReviewHistory from './pages/DailyReviewHistory';
 import DecisionCriterionDetail from './pages/DecisionCriterionDetail';
 import DecisionCriterionNew from './pages/DecisionCriterionNew';
 import DecisionDetail from './pages/DecisionDetail';
@@ -69,13 +71,13 @@ import JournalNew from './pages/JournalNew';
 import Onboarding from './pages/Onboarding';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
-import DailyReview from './pages/DailyReview';
-import DailyReviewHistory from './pages/DailyReviewHistory';
 
 
 export const PAGES = {
     "About": About,
     "ArchivedHabits": ArchivedHabits,
+    "DailyReview": DailyReview,
+    "DailyReviewHistory": DailyReviewHistory,
     "DecisionCriterionDetail": DecisionCriterionDetail,
     "DecisionCriterionNew": DecisionCriterionNew,
     "DecisionDetail": DecisionDetail,
@@ -96,8 +98,6 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Privacy": Privacy,
     "Settings": Settings,
-    "DailyReview": DailyReview,
-    "DailyReviewHistory": DailyReviewHistory,
 }
 
 export const pagesConfig = {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight, ArrowLeft, Moon } from 'lucide-react';
+import { ChevronRight, ArrowLeft, Moon, Download } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import ImportService from '../components/ImportService';
 import ErrorBoundary from '../components/ErrorBoundary';
