@@ -251,6 +251,11 @@ export default function Settings() {
       URL.revokeObjectURL(url);
       a.remove();
       
+      // Update lastBackupAt
+      const now = new Date().toISOString();
+      await base44.entities.UserProfile.update(userProfile.id, { lastBackupAt: now });
+      setUserProfile({ ...userProfile, lastBackupAt: now });
+      
       setBackupMessage(exportWarnings.length > 0 ? `Backup downloaded (${exportWarnings.length} warnings)` : 'Backup downloaded');
     } catch (error) {
       console.error('Error exporting data:', error);
@@ -670,6 +675,21 @@ export default function Settings() {
               <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
                 Backup
               </h2>
+              
+              <div className="mb-4 p-3" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
+                <p className="text-xs mb-1" style={{ color: '#9AA3B2' }}>
+                  Last backup
+                </p>
+                <p className="text-sm" style={{ color: '#E8EAF0' }}>
+                  {userProfile?.lastBackupAt 
+                    ? new Date(userProfile.lastBackupAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })
+                    : 'Never'}
+                </p>
+              </div>
               <div className="space-y-2">
                 <button
                   onClick={handleExportJSON}
