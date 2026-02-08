@@ -89,11 +89,16 @@ export default function HabitDetail() {
             setTodayLog(todayLogs[0]);
           }
 
-          // Load last 14 days of logs
-          const fourteenDaysAgo = getUserDate(profile, -13);
-          const allLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
-          const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= todayDate);
-          setRecentLogs(filteredLogs);
+          // Load last 14 days of logs (with defensive check)
+          try {
+            const fourteenDaysAgo = getUserDate(profile, -13);
+            const allLogs = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
+            const filteredLogs = allLogs.filter(log => log.date >= fourteenDaysAgo && log.date <= todayDate);
+            setRecentLogs(filteredLogs);
+          } catch (error) {
+            console.error('Error loading logs:', error);
+            setRecentLogs([]);
+          }
           
           // Calculate streaks
           const current = calculateCurrentStreak(allLogs, todayDate);

@@ -47,16 +47,23 @@ export default function Habits() {
           const today = getUserToday(profile);
           
           for (const habit of activeHabits) {
-            const logs = await base44.entities.HabitLog.filter(
-              { habitId: habit.id, userId },
-              '-date'
-            );
-            streaks[habit.id] = calculateCurrentStreak(logs, today);
-            
-            // Check if habit is done today
-            const todayLog = logs.find(log => log.date === today);
-            completedToday[habit.id] = todayLog?.status === 'done';
-            todayStatus[habit.id] = todayLog?.status || null;
+            try {
+              const logs = await base44.entities.HabitLog.filter(
+                { habitId: habit.id, userId },
+                '-date'
+              );
+              streaks[habit.id] = calculateCurrentStreak(logs, today);
+              
+              // Check if habit is done today
+              const todayLog = logs.find(log => log.date === today);
+              completedToday[habit.id] = todayLog?.status === 'done';
+              todayStatus[habit.id] = todayLog?.status || null;
+            } catch (error) {
+              console.error(`Error loading logs for habit ${habit.id}:`, error);
+              streaks[habit.id] = 0;
+              completedToday[habit.id] = false;
+              todayStatus[habit.id] = null;
+            }
           }
           setHabitStreaks(streaks);
           setHabitCompletedToday(completedToday);
