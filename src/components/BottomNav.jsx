@@ -24,6 +24,7 @@ export default function BottomNav() {
       style={{ 
         backgroundColor: '#1A1D24', 
         height: '56px',
+        paddingBottom: 'var(--safe-area-bottom)',
         borderTop: '1px solid rgba(202, 162, 39, 0.1)'
       }}
     >
