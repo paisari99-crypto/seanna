@@ -703,19 +703,49 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
       
       // Notify parent with full import report
       if (onReportGenerated) {
-        onReportGenerated({
-          backupHash,
-          fileName: file?.name,
-          version: validationResult.sections?.version || '1.0.0',
-          result,
-          preview: importPreview
-        });
+        try {
+          await onReportGenerated({
+            backupHash: backupHash ?? '',
+            fileName: file?.name ?? 'unknown',
+            version: validationResult?.sections?.version ?? '1.0.0',
+            result: result ?? {},
+            preview: importPreview ?? {}
+          });
+        } catch (reportError) {
+          console.error('Failed to generate report:', reportError);
+        }
       }
       
       setStage('complete');
     } catch (err) {
       console.error('Import error:', err);
-      setError(err.message || 'Import failed. No data was changed.');
+      
+      const errorResult = {
+        ok: false,
+        habits: { created: 0, skipped: 0, errors: [String(err?.message || err)] },
+        habitLogs: { created: 0, skipped: 0, errors: [] },
+        journalEntries: { created: 0, skipped: 0, errors: [] },
+        decisions: { created: 0, skipped: 0, errors: [] }
+      };
+      
+      setImportResult(errorResult);
+      setError(String(err?.message || err || 'Import failed'));
+      
+      // Notify parent even on error
+      if (onReportGenerated) {
+        try {
+          await onReportGenerated({
+            backupHash: backupHash ?? '',
+            fileName: file?.name ?? 'unknown',
+            version: validationResult?.sections?.version ?? '1.0.0',
+            result: errorResult,
+            preview: importPreview ?? {}
+          });
+        } catch (reportError) {
+          console.error('Failed to generate error report:', reportError);
+        }
+      }
+      
       setStage('error');
     }
   };

@@ -23,6 +23,21 @@ import {
 
 const BUILD_TIMESTAMP = new Date().toISOString();
 
+const defaultReport = {
+  ok: false,
+  backupHash: "",
+  fileName: "",
+  version: "1.0.0",
+  importedAt: "",
+  created: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
+  skipped: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
+  warnings: [],
+  errors: [],
+  missingRefs: [],
+  missingHabitIds: [],
+  duplicates: []
+};
+
 export default function Settings() {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
@@ -342,6 +357,7 @@ export default function Settings() {
       const preview = reportData?.preview ?? {};
       
       const report = {
+        ok: result.ok ?? true,
         backupHash: reportData?.backupHash ?? 'unknown',
         fileName: reportData?.fileName ?? 'unknown',
         version: reportData?.version ?? '1.0.0',
@@ -367,7 +383,12 @@ export default function Settings() {
         missingRefs: Array.isArray(preview.unmatchedHabitRefs) ? preview.unmatchedHabitRefs : [],
         missingHabitIds: Array.from(preview.missingHabitIds ?? []),
         warnings: Array.isArray(preview.warnings) ? preview.warnings : [],
-        errors: Array.isArray(result.errors) ? result.errors : []
+        errors: [
+          ...(Array.isArray(result.habits?.errors) ? result.habits.errors : []),
+          ...(Array.isArray(result.habitLogs?.errors) ? result.habitLogs.errors : []),
+          ...(Array.isArray(result.journalEntries?.errors) ? result.journalEntries.errors : []),
+          ...(Array.isArray(result.decisions?.errors) ? result.decisions.errors : [])
+        ]
       };
       
       setImportReport(report);
@@ -389,23 +410,22 @@ export default function Settings() {
         console.error('Failed to save import receipt:', receiptError);
       }
       
-      toast.success('Import complete');
+      if (report.ok) {
+        toast.success('Import complete');
+      } else {
+        toast.error('Import completed with errors');
+      }
     } catch (error) {
       console.error('Error generating import report:', error);
       setImportReport({
-        backupHash: 'error',
-        fileName: 'error',
-        version: '1.0.0',
+        ...defaultReport,
+        ok: false,
+        backupHash: reportData?.backupHash ?? 'error',
+        fileName: reportData?.fileName ?? 'error',
         importedAt: new Date().toISOString(),
-        created: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
-        skipped: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
-        duplicates: [],
-        missingRefs: [],
-        missingHabitIds: [],
-        warnings: [],
-        errors: [error.message || 'Unknown error']
+        errors: [String(error?.message || error || 'Unknown error')]
       });
-      toast.error('Import completed but report generation failed');
+      toast.error('Import failed');
     }
   };
 
@@ -712,16 +732,18 @@ export default function Settings() {
               )}
               
               {importReport && (() => {
-                const report = importReport ?? {};
-                const created = report.created ?? {};
-                const skipped = report.skipped ?? {};
+                const report = importReport ?? defaultReport;
+                const created = report.created ?? defaultReport.created;
+                const skipped = report.skipped ?? defaultReport.skipped;
                 const warnings = Array.isArray(report.warnings) ? report.warnings : [];
                 const errors = Array.isArray(report.errors) ? report.errors : [];
+                const missingRefs = Array.isArray(report.missingRefs) ? report.missingRefs : [];
+                const duplicates = Array.isArray(report.duplicates) ? report.duplicates : [];
                 
                 return (
                   <div className="mt-4 p-4" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                      <h3 className="text-sm font-semibold" style={{ color: report.ok ? '#C9A227' : '#ff6b6b' }}>
                         Import Report
                       </h3>
                       <button
@@ -735,6 +757,15 @@ export default function Settings() {
                     </div>
                     
                     <div className="space-y-3 text-xs">
+                      {!report.ok && errors.length > 0 && (
+                        <div className="p-3" style={{ backgroundColor: '#1A1D24', borderRadius: '8px', border: '1px solid #ff6b6b' }}>
+                          <p className="mb-2" style={{ color: '#ff6b6b', fontWeight: 600 }}>Import Failed</p>
+                          {errors.map((error, i) => (
+                            <p key={i} style={{ color: '#9AA3B2' }}>• {String(error)}</p>
+                          ))}
+                        </div>
+                      )}
+                      
                       <div>
                         <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Created</p>
                         <div className="space-y-1" style={{ color: '#9AA3B2' }}>
@@ -761,14 +792,14 @@ export default function Settings() {
                         <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px' }}>
                           <p className="mb-1" style={{ color: '#C9A227', fontWeight: 600 }}>Warnings</p>
                           {warnings.map((warning, i) => (
-                            <p key={i} style={{ color: '#9AA3B2' }}>• {warning}</p>
+                            <p key={i} style={{ color: '#9AA3B2' }}>• {String(warning)}</p>
                           ))}
                         </div>
                       )}
                       
-                      {errors.length > 0 && (
+                      {report.ok && errors.length > 0 && (
                         <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px', border: '1px solid #ff6b6b' }}>
-                          <p className="mb-1" style={{ color: '#ff6b6b', fontWeight: 600 }}>Errors</p>
+                          <p className="mb-1" style={{ color: '#ff6b6b', fontWeight: 600 }}>Errors (partial)</p>
                           {errors.map((error, i) => (
                             <p key={i} style={{ color: '#9AA3B2' }}>• {String(error)}</p>
                           ))}
@@ -780,7 +811,7 @@ export default function Settings() {
                           Imported: {report.importedAt ? new Date(report.importedAt).toLocaleString() : 'Unknown'}
                         </p>
                         <p style={{ color: '#9AA3B2', fontSize: '10px', opacity: 0.7 }}>
-                          Hash: {report.backupHash?.substring(0, 12) ?? 'unknown'}...
+                          Hash: {(report.backupHash ?? 'unknown').substring(0, 12)}...
                         </p>
                       </div>
                     </div>
