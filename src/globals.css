@@ -4,31 +4,38 @@ css
 @tailwind utilities;
 
 @layer base {
+  /*
+    The theme variable definitions are updated according to the outline.
+    A single `:root` block now defines the default (dark) theme and includes
+    all general layout/spacing variables (like safe-area-left/right, spacing, radius)
+    which were present in the original file and not explicitly modified or removed
+    by the outline's theme-specific variable blocks.
+    
+    The outline's explicit `:root[data-theme="dark"]` block is omitted because
+    it is redundant; the main `:root` already sets the dark theme as default.
+  */
+  
   :root {
-    /* Safe Area Insets */
-    --safe-area-top: env(safe-area-inset-top);
-    --safe-area-bottom: env(safe-area-inset-bottom);
-    --safe-area-left: env(safe-area-inset-left);
-    --safe-area-right: env(safe-area-inset-right);
-    
-    /* Spacing */
-    --spacing-default: 16px;
-    --spacing-card: 12px;
-    
-    /* Corner Radius */
-    --radius: 18px;
-    
-    /* Dark theme (default) */
+    /* Default dark theme variables - merged from original default and outline's final :root */
     --background: #0F1115;
     --surface: #1A1D24;
-    --surface-alt: #0F1115;
+    --border: #2A2F3A; /* Updated border color from outline */
     --primary: #C9A227;
     --primary-foreground: #0F1115;
     --text-primary: #E8EAF0;
     --text-secondary: #9AA3B2;
-    --border: rgba(202, 162, 39, 0.1);
+    --safe-area-top: env(safe-area-inset-top); /* Explicitly set in outline's default :root */
+    --safe-area-bottom: env(safe-area-inset-bottom); /* Explicitly set in outline's default :root */
     
-    /* Shadcn UI compatibility */
+    /* Other essential non-theme-specific variables preserved from original code */
+    --safe-area-left: env(safe-area-inset-left); 
+    --safe-area-right: env(safe-area-inset-right);
+    --spacing-default: 16px;
+    --spacing-card: 12px;
+    --radius: 18px;
+    
+    /* Shadcn UI compatibility variables - Preserved from original,
+       as their removal was not explicitly indicated for the default theme. */
     --card: #1A1D24;
     --card-foreground: #E8EAF0;
     --popover: #1A1D24;
@@ -42,18 +49,20 @@ css
     --foreground: #E8EAF0;
   }
   
-  /* Light theme - only when explicitly set */
-  [data-theme="light"] {
+  /* Light theme - only when explicitly set, as per outline.
+     This block overrides only theme-specific variables. */
+  :root[data-theme="light"] {
     --background: #FFFFFF;
     --surface: #F5F5F5;
-    --surface-alt: #FAFAFA;
+    --border: #E0E0E0; /* Updated border color from outline */
     --primary: #C9A227;
     --primary-foreground: #FFFFFF;
-    --text-primary: #111827;
+    --text-primary: #1A1D24; /* Updated text primary color from outline */
     --text-secondary: #6B7280;
-    --border: rgba(17, 24, 39, 0.12);
+    --safe-area-top: env(safe-area-inset-top); /* Explicitly set in outline's light theme :root */
+    --safe-area-bottom: env(safe-area-inset-bottom); /* Explicitly set in outline's light theme :root */
     
-    /* Shadcn UI compatibility */
+    /* Shadcn UI compatibility for light theme - Preserved from original. */
     --card: #F5F5F5;
     --card-foreground: #111827;
     --popover: #FFFFFF;
@@ -147,6 +156,7 @@ css
   }
 }
 
+/* Original keyframe animations not mentioned in the outline are preserved */
 @keyframes slideDown {
   from {
     transform: translateY(-100%);
@@ -158,26 +168,25 @@ css
   }
 }
 
+/* Updated keyframe animation from outline */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
+/* Updated keyframe animation from outline */
 @keyframes slideUp {
-  from {
-    transform: translateY(10px);
+  from { 
     opacity: 0;
+    transform: translateY(20px);
   }
-  to {
-    transform: translateY(0);
+  to { 
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
+/* Original keyframe animation not mentioned in the outline is preserved */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -187,18 +196,21 @@ css
   }
 }
 
+/* Updated animation utility classes from outline */
 .animate-fadeIn {
-  animation: fadeIn 150ms ease-out;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .animate-slideUp {
-  animation: slideUp 180ms ease-out;
+  animation: slideUp 0.4s ease-out forwards;
 }
 
+/* Original animation utility class not mentioned in the outline is preserved */
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Original transition classes not mentioned in the outline are preserved */
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
