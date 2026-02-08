@@ -42,31 +42,29 @@ css
     --foreground: #E8EAF0;
   }
   
-  /* Light theme - respects system preference */
-  @media (prefers-color-scheme: light) {
-    :root {
-      --background: #FFFFFF;
-      --surface: #F5F5F5;
-      --surface-alt: #FAFAFA;
-      --primary: #C9A227;
-      --primary-foreground: #FFFFFF;
-      --text-primary: #111827;
-      --text-secondary: #6B7280;
-      --border: rgba(17, 24, 39, 0.12);
-      
-      /* Shadcn UI compatibility */
-      --card: #F5F5F5;
-      --card-foreground: #111827;
-      --popover: #FFFFFF;
-      --popover-foreground: #111827;
-      --muted: #6B7280;
-      --muted-foreground: #6B7280;
-      --accent: #C9A227;
-      --accent-foreground: #FFFFFF;
-      --input: #F5F5F5;
-      --ring: #C9A227;
-      --foreground: #111827;
-    }
+  /* Light theme - only when explicitly set */
+  [data-theme="light"] {
+    --background: #FFFFFF;
+    --surface: #F5F5F5;
+    --surface-alt: #FAFAFA;
+    --primary: #C9A227;
+    --primary-foreground: #FFFFFF;
+    --text-primary: #111827;
+    --text-secondary: #6B7280;
+    --border: rgba(17, 24, 39, 0.12);
+    
+    /* Shadcn UI compatibility */
+    --card: #F5F5F5;
+    --card-foreground: #111827;
+    --popover: #FFFFFF;
+    --popover-foreground: #111827;
+    --muted: #6B7280;
+    --muted-foreground: #6B7280;
+    --accent: #C9A227;
+    --accent-foreground: #FFFFFF;
+    --input: #F5F5F5;
+    --ring: #C9A227;
+    --foreground: #111827;
   }
   
   * {
