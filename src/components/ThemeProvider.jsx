@@ -6,6 +6,8 @@ export default function ThemeProvider({ children }) {
     const savedTheme = localStorage.getItem('seanna_theme');
     const theme = savedTheme || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
+    // Also set background immediately
+    document.body.style.backgroundColor = 'var(--background)';
   }, []);
 
   return children;
