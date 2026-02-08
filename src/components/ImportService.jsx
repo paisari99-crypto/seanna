@@ -19,6 +19,34 @@ export default function ImportService({ userProfile, onComplete }) {
     });
   };
 
+  const computeHabitKey = (habit) => {
+    const name = (habit.name || '').toLowerCase().trim();
+    const scheduleType = habit.scheduleType || '';
+    const description = (habit.description || '').toLowerCase().trim();
+    return `${name}|${scheduleType}|${description}`;
+  };
+
+  const computeLogKey = (habitKey, date) => {
+    return `${habitKey}|${date}`;
+  };
+
+  const computeJournalKey = (entry) => {
+    const createdDate = entry.created_date || '';
+    const title = (entry.title || '').toLowerCase().trim();
+    if (title) {
+      return `${createdDate}|${title}`;
+    }
+    const bodyStart = (entry.body || '').substring(0, 80).toLowerCase().trim();
+    return `${createdDate}|${bodyStart}`;
+  };
+
+  const computeDecisionKey = (decision) => {
+    const createdDate = decision.created_date || '';
+    const title = (decision.title || '').toLowerCase().trim();
+    const context = (decision.context || '').toLowerCase().trim();
+    return `${createdDate}|${title}|${context}`;
+  };
+
   const validateBackup = async (backupData) => {
     const errors = [];
     const warnings = [];
@@ -63,26 +91,44 @@ export default function ImportService({ userProfile, onComplete }) {
     const existingJournals = await base44.entities.JournalEntry.filter({ userId: currentUserId });
     const existingDecisions = await base44.entities.Decision.filter({ userId: currentUserId });
 
-    // Build maps by externalId for deduplication
-    const existingHabitsByExtId = new Map(existingHabits.filter(h => h.externalId).map(h => [h.externalId, h]));
-    const existingJournalsByExtId = new Map(existingJournals.filter(j => j.externalId).map(j => [j.externalId, j]));
-    const existingDecisionsByExtId = new Map(existingDecisions.filter(d => d.externalId).map(d => [d.externalId, d]));
-
-    // Build habit externalId map for log deduplication
-    const habitExtIdToId = new Map();
+    // Build lookup maps using deterministic keys
+    const existingHabitsByKey = new Map();
+    const existingHabitsByExtId = new Map();
     existingHabits.forEach(h => {
-      if (h.externalId) habitExtIdToId.set(h.externalId, h.id);
-    });
-    sections.habits.forEach(h => {
-      if (h.externalId) habitExtIdToId.set(h.externalId, h.id);
+      const key = computeHabitKey(h);
+      existingHabitsByKey.set(key, h);
+      if (h.externalId) {
+        existingHabitsByExtId.set(h.externalId, h);
+      }
     });
 
-    // For HabitLog: composite key (habitExternalId + date + userId)
-    const existingLogKeys = new Set();
+    const existingLogsByKey = new Map();
     existingLogs.forEach(log => {
       const habit = existingHabits.find(h => h.id === log.habitId);
-      if (habit?.externalId) {
-        existingLogKeys.add(`${habit.externalId}:${log.date}`);
+      if (habit) {
+        const habitKey = computeHabitKey(habit);
+        const logKey = computeLogKey(habitKey, log.date);
+        existingLogsByKey.set(logKey, log);
+      }
+    });
+
+    const existingJournalsByKey = new Map();
+    const existingJournalsByExtId = new Map();
+    existingJournals.forEach(j => {
+      const key = computeJournalKey(j);
+      existingJournalsByKey.set(key, j);
+      if (j.externalId) {
+        existingJournalsByExtId.set(j.externalId, j);
+      }
+    });
+
+    const existingDecisionsByKey = new Map();
+    const existingDecisionsByExtId = new Map();
+    existingDecisions.forEach(d => {
+      const key = computeDecisionKey(d);
+      existingDecisionsByKey.set(key, d);
+      if (d.externalId) {
+        existingDecisionsByExtId.set(d.externalId, d);
       }
     });
 
@@ -105,74 +151,95 @@ export default function ImportService({ userProfile, onComplete }) {
       }
     };
 
-    // Process habits - deduplicate by externalId
+    // Track habits being imported (for log resolution)
+    const importedHabitMap = new Map(); // backup habit id -> habit key
+
+    // Process habits - deduplicate by externalId OR content key
     sections.habits.forEach(habit => {
-      // Ensure externalId exists (backward compatibility)
-      if (!habit.externalId) {
-        habit.externalId = generateExternalId();
+      const habitKey = computeHabitKey(habit);
+      importedHabitMap.set(habit.id, habitKey);
+      
+      let isDuplicate = false;
+      
+      // Check by externalId first (if present)
+      if (habit.externalId && existingHabitsByExtId.has(habit.externalId)) {
+        isDuplicate = true;
+      }
+      // Fall back to content-based key
+      else if (existingHabitsByKey.has(habitKey)) {
+        isDuplicate = true;
       }
       
-      if (existingHabitsByExtId.has(habit.externalId)) {
+      if (isDuplicate) {
         preview.habits.skip.push(habit);
       } else {
         preview.habits.create.push(habit);
       }
     });
 
-    // Process journal entries - deduplicate by externalId
+    // Process journal entries - deduplicate by externalId OR content key
     sections.journalEntries.forEach(entry => {
-      if (!entry.externalId) {
-        entry.externalId = generateExternalId();
+      const journalKey = computeJournalKey(entry);
+      
+      let isDuplicate = false;
+      
+      if (entry.externalId && existingJournalsByExtId.has(entry.externalId)) {
+        isDuplicate = true;
+      } else if (existingJournalsByKey.has(journalKey)) {
+        isDuplicate = true;
       }
       
-      if (existingJournalsByExtId.has(entry.externalId)) {
+      if (isDuplicate) {
         preview.journalEntries.skip.push(entry);
       } else {
         preview.journalEntries.create.push(entry);
       }
     });
 
-    // Process decisions - deduplicate by externalId
+    // Process decisions - deduplicate by externalId OR content key
     sections.decisions.forEach(decision => {
-      if (!decision.externalId) {
-        decision.externalId = generateExternalId();
+      const decisionKey = computeDecisionKey(decision);
+      
+      let isDuplicate = false;
+      
+      if (decision.externalId && existingDecisionsByExtId.has(decision.externalId)) {
+        isDuplicate = true;
+      } else if (existingDecisionsByKey.has(decisionKey)) {
+        isDuplicate = true;
       }
       
-      if (existingDecisionsByExtId.has(decision.externalId)) {
+      if (isDuplicate) {
         preview.decisions.skip.push(decision);
       } else {
         preview.decisions.create.push(decision);
       }
     });
 
-    // Process habit logs - composite deduplication
-    const habitExtIdMap = new Map(sections.habits.map(h => [h.id, h.externalId]));
+    // Process habit logs - deduplicate by habit key + date
+    const processedLogKeys = new Set();
     
     sections.habitLogs.forEach(log => {
-      if (!log.externalId) {
-        log.externalId = generateExternalId();
-      }
+      // Get habit key from backup
+      const habitKey = importedHabitMap.get(log.habitId);
       
-      // Find habit's externalId (from backup or existing)
-      let habitExternalId = habitExtIdMap.get(log.habitId);
-      if (!habitExternalId) {
+      if (!habitKey) {
+        // Habit not in backup - check if it exists in user's account
         const existingHabit = existingHabits.find(h => h.id === log.habitId);
-        habitExternalId = existingHabit?.externalId;
+        if (!existingHabit) {
+          preview.habitLogs.skip.push(log);
+          return;
+        }
       }
       
-      if (!habitExternalId) {
-        // Habit doesn't exist - skip this log
-        preview.habitLogs.skip.push(log);
-        return;
-      }
+      const resolvedHabitKey = habitKey || computeHabitKey(existingHabits.find(h => h.id === log.habitId));
+      const logKey = computeLogKey(resolvedHabitKey, log.date);
       
-      const logKey = `${habitExternalId}:${log.date}`;
-      if (existingLogKeys.has(logKey)) {
-        // Duplicate log for same habit+date
+      // Check if duplicate
+      if (existingLogsByKey.has(logKey) || processedLogKeys.has(logKey)) {
         preview.habitLogs.skip.push(log);
       } else {
         preview.habitLogs.create.push(log);
-        existingLogKeys.add(logKey); // Track to avoid duplicates within this import
+        processedLogKeys.add(logKey);
       }
     });
 
@@ -188,22 +255,35 @@ export default function ImportService({ userProfile, onComplete }) {
       decisions: { created: 0, skipped: 0, errors: [] }
     };
 
-    // Fetch existing habits to map externalIds to internal IDs
+    // Fetch existing habits and build key mappings
     const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
-    const habitExtIdToInternalId = new Map(
-      existingHabits.filter(h => h.externalId).map(h => [h.externalId, h.id])
-    );
+    
+    // Map habit keys to internal IDs (for both existing and to-be-created habits)
+    const habitKeyToInternalId = new Map();
+    existingHabits.forEach(h => {
+      const key = computeHabitKey(h);
+      habitKeyToInternalId.set(key, h.id);
+    });
 
     // Import habits
     for (const habit of preview.habits.create) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = habit;
+        
+        // Generate externalId if not present (for future exports)
+        if (!data.externalId) {
+          data.externalId = generateExternalId();
+        }
+        
         const newHabit = await base44.entities.Habit.create({
           ...data,
           userId: currentUserId
         });
+        
         // Track the new mapping
-        habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
+        const habitKey = computeHabitKey(habit);
+        habitKeyToInternalId.set(habitKey, newHabit.id);
+        
         results.habits.created++;
       } catch (error) {
         results.habits.errors.push(`Failed to create habit "${habit.name}": ${error.message}`);
@@ -217,10 +297,22 @@ export default function ImportService({ userProfile, onComplete }) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = log;
         
-        // Map habitId from backup to actual internal ID
+        // Generate externalId if not present
+        if (!data.externalId) {
+          data.externalId = generateExternalId();
+        }
+        
+        // Map habitId using habit key
         const habitFromBackup = sections.habits.find(h => h.id === log.habitId);
-        const habitExternalId = habitFromBackup?.externalId;
-        const actualHabitId = habitExternalId ? habitExtIdToInternalId.get(habitExternalId) : log.habitId;
+        let actualHabitId;
+        
+        if (habitFromBackup) {
+          const habitKey = computeHabitKey(habitFromBackup);
+          actualHabitId = habitKeyToInternalId.get(habitKey);
+        } else {
+          // Habit not in backup, use existing habitId
+          actualHabitId = log.habitId;
+        }
         
         if (!actualHabitId) {
           results.habitLogs.errors.push(`Failed to create log: habit not found`);
@@ -244,6 +336,11 @@ export default function ImportService({ userProfile, onComplete }) {
     for (const entry of preview.journalEntries.create) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = entry;
+        
+        if (!data.externalId) {
+          data.externalId = generateExternalId();
+        }
+        
         await base44.entities.JournalEntry.create({
           ...data,
           userId: currentUserId
@@ -260,6 +357,11 @@ export default function ImportService({ userProfile, onComplete }) {
     for (const decision of preview.decisions.create) {
       try {
         const { id, created_date, updated_date, created_by, userId, ...data } = decision;
+        
+        if (!data.externalId) {
+          data.externalId = generateExternalId();
+        }
+        
         await base44.entities.Decision.create({
           ...data,
           userId: currentUserId
