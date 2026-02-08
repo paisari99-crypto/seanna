@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { SkeletonCard, SkeletonStat } from '../components/SkeletonLoader';
 import { runIntegrityCheck } from '../components/integrityUtils';
 import PullToRefresh from '../components/PullToRefresh';
+import ThemeProvider from '../components/ThemeProvider';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -246,8 +247,9 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
-        <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
+      <ThemeProvider>
+        <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
+          <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -270,9 +272,10 @@ export default function Home() {
             <SkeletonCard />
           </div>
         </div>
-        
-        <BottomNav />
-      </div>
+          
+          <BottomNav />
+        </div>
+      </ThemeProvider>
     );
   }
   
@@ -308,8 +311,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
-      <PullToRefresh onRefresh={handleRefresh}>
+    <ThemeProvider>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
+        <PullToRefresh onRefresh={handleRefresh}>
         <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <div className="flex justify-between items-start">
           <div>
@@ -454,9 +458,10 @@ export default function Home() {
           })}
         </div>
       </div>
-      </PullToRefresh>
-      
-      <BottomNav />
-    </div>
+        </PullToRefresh>
+        
+        <BottomNav />
+      </div>
+    </ThemeProvider>
   );
 }
