@@ -5,12 +5,11 @@ css
 
 @layer base {
   :root {
-    /* Color Palette */
-    --background: #0F1115;
-    --surface: #1A1D24;
-    --primary: #C9A227;
-    --text-primary: #E8EAF0;
-    --text-secondary: #9AA3B2;
+    /* Safe Area Insets */
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
+    --safe-area-left: env(safe-area-inset-left);
+    --safe-area-right: env(safe-area-inset-right);
     
     /* Spacing */
     --spacing-default: 16px;
@@ -18,12 +17,15 @@ css
     
     /* Corner Radius */
     --radius: 18px;
-    
-    /* Safe Area Insets */
-    --safe-area-top: env(safe-area-inset-top);
-    --safe-area-bottom: env(safe-area-inset-bottom);
-    --safe-area-left: env(safe-area-inset-left);
-    --safe-area-right: env(safe-area-inset-right);
+  }
+  
+  /* Dark theme (default) */
+  :root {
+    --background: #0F1115;
+    --surface: #1A1D24;
+    --primary: #C9A227;
+    --text-primary: #E8EAF0;
+    --text-secondary: #9AA3B2;
     
     /* Shadcn UI compatibility */
     --card: #1A1D24;
@@ -40,43 +42,104 @@ css
     --foreground: #E8EAF0;
   }
   
+  /* Light theme - respects system preference */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --background: #FFFFFF;
+      --surface: #F5F5F5;
+      --primary: #C9A227;
+      --text-primary: #1A1D24;
+      --text-secondary: #6B7280;
+      
+      /* Shadcn UI compatibility */
+      --card: #F5F5F5;
+      --card-foreground: #1A1D24;
+      --popover: #FFFFFF;
+      --popover-foreground: #1A1D24;
+      --muted: #6B7280;
+      --muted-foreground: #6B7280;
+      --accent: #C9A227;
+      --accent-foreground: #FFFFFF;
+      --border: #E5E7EB;
+      --input: #F5F5F5;
+      --ring: #C9A227;
+      --foreground: #1A1D24;
+    }
+  }
+  
   * {
     @apply border-border;
   }
   
   /* Ensure native gestures and text selection work */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
   body, #root {
     touch-action: auto;
     user-select: text;
     -webkit-user-select: text;
+    -webkit-touch-callout: default;
+  }
+  
+  /* Disable text selection only on interactive elements */
+  button, a, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
   
   body {
-    @apply bg-[#0F1115] text-[#E8EAF0];
+    background-color: var(--background);
+    color: var(--text-primary);
     font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  #root {
+    min-height: 100vh;
     padding-top: var(--safe-area-top);
-    padding-bottom: var(--safe-area-bottom);
     padding-left: var(--safe-area-left);
     padding-right: var(--safe-area-right);
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
-    color: #E8EAF0;
+    color: var(--text-primary);
   }
   
   p, span, div {
-    color: #E8EAF0;
+    color: var(--text-primary);
+  }
+  
+  /* Ensure proper text selection styling */
+  ::selection {
+    background-color: var(--primary);
+    color: var(--background);
+  }
+  
+  ::-moz-selection {
+    background-color: var(--primary);
+    color: var(--background);
   }
 }
 
 @layer components {
   .card {
-    @apply bg-[#1A1D24] rounded-[18px] p-4;
+    background-color: var(--surface);
+    border-radius: 18px;
+    padding: 16px;
   }
   
   .btn {
-    @apply rounded-[18px] px-4 py-2 bg-[#C9A227] text-[#0F1115] font-semibold;
+    border-radius: 18px;
+    padding: 8px 16px;
+    background-color: var(--primary);
+    color: var(--background);
+    font-weight: 600;
   }
 }
 

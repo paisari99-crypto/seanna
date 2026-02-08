@@ -246,14 +246,14 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
         <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+              <h1 className="text-4xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                 Seanna
               </h1>
-              <p className="text-lg" style={{ color: '#9AA3B2' }}>
+              <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
                 Your cognitive toolkit
               </p>
             </div>
@@ -308,7 +308,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(72px + var(--safe-area-bottom))' }}>
       <PullToRefresh onRefresh={handleRefresh}>
         <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <div className="flex justify-between items-start">

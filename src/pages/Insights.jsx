@@ -240,7 +240,7 @@ Provide a structured weekly review in the following JSON format:
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', paddingBottom: 'calc(76px + var(--safe-area-bottom))' }}>
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="p-6">
           <div className="mb-6">

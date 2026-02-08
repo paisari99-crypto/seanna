@@ -22,10 +22,11 @@ export default function BottomNav() {
     <div 
       className="fixed bottom-0 left-0 right-0 flex justify-around items-center"
       style={{ 
-        backgroundColor: '#1A1D24', 
+        backgroundColor: 'var(--surface)', 
         height: '56px',
         paddingBottom: 'var(--safe-area-bottom)',
-        borderTop: '1px solid rgba(202, 162, 39, 0.1)'
+        borderTop: '1px solid rgba(202, 162, 39, 0.1)',
+        zIndex: 50
       }}
     >
       {tabs.map((tab) => {
@@ -40,11 +41,11 @@ export default function BottomNav() {
           >
             <Icon 
               size={20} 
-              style={{ color: active ? '#C9A227' : '#9AA3B2' }}
+              style={{ color: active ? 'var(--primary)' : 'var(--text-secondary)' }}
             />
             <span 
               className="text-xs mt-1"
-              style={{ color: active ? '#C9A227' : '#9AA3B2' }}
+              style={{ color: active ? 'var(--primary)' : 'var(--text-secondary)' }}
             >
               {tab.label}
             </span>
