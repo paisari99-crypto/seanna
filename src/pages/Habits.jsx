@@ -500,7 +500,8 @@ export default function Habits() {
             })()}
           </div>
         )}
-      </div>
+        </div>
+      </PullToRefresh>
       
       <DuplicateHabitsDialog
         open={showDuplicatesDialog}
