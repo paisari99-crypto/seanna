@@ -7,6 +7,7 @@ import BottomNav from '../components/BottomNav';
 import ImportService from '../components/ImportService';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Input } from '@/components/ui/input';
+import { runIntegrityCheck } from '../components/integrityUtils';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -55,6 +56,8 @@ export default function Settings() {
   const [isolationData, setIsolationData] = useState(null);
   const [runningIsolationCheck, setRunningIsolationCheck] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [integrityReport, setIntegrityReport] = useState(null);
+  const [runningIntegrityCheck, setRunningIntegrityCheck] = useState(false);
   const [backupExporting, setBackupExporting] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
   const [showImportService, setShowImportService] = useState(false);
@@ -86,6 +89,16 @@ export default function Settings() {
           lastSync: lastSync || 'Never',
           appVersion: '1.0.0'
         });
+        
+        // Load integrity report
+        const savedReport = localStorage.getItem('seanna_integrity_report');
+        if (savedReport) {
+          try {
+            setIntegrityReport(JSON.parse(savedReport));
+          } catch (e) {
+            console.error('Failed to parse integrity report:', e);
+          }
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -468,6 +481,26 @@ export default function Settings() {
     a.remove();
   };
 
+  const handleIntegrityCheck = async () => {
+    setRunningIntegrityCheck(true);
+    try {
+      const report = await runIntegrityCheck(userProfile);
+      setIntegrityReport(report);
+      localStorage.setItem('seanna_integrity_report', JSON.stringify(report));
+      
+      if (report.ok) {
+        toast.success('No issues found');
+      } else {
+        toast.error('Issues detected');
+      }
+    } catch (error) {
+      console.error('Integrity check failed:', error);
+      toast.error('Check failed');
+    } finally {
+      setRunningIntegrityCheck(false);
+    }
+  };
+  
   const handleIsolationCheck = async () => {
     setRunningIsolationCheck(true);
     try {
@@ -1104,6 +1137,68 @@ export default function Settings() {
                 )}
               </div>
             )}
+
+            {/* Data Integrity */}
+            <div
+              className="p-5"
+              style={{
+                backgroundColor: '#1A1D24',
+                borderRadius: '18px'
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4" style={{ color: '#E8EAF0' }}>
+                Data Integrity
+              </h2>
+              
+              {integrityReport && (
+                <div className="mb-4 p-3" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: integrityReport.ok ? '#C9A227' : '#ff6b6b' }}
+                    />
+                    <p className="text-sm font-semibold" style={{ color: '#E8EAF0' }}>
+                      Status: {integrityReport.ok ? 'OK' : 'Warning'}
+                    </p>
+                  </div>
+                  
+                  {(integrityReport.warnings?.length > 0 || integrityReport.errors?.length > 0) && (
+                    <div className="mt-3 space-y-2">
+                      {integrityReport.errors?.map((error, i) => (
+                        <p key={`error-${i}`} className="text-xs" style={{ color: '#ff6b6b' }}>
+                          • {error}
+                        </p>
+                      ))}
+                      {integrityReport.warnings?.map((warning, i) => (
+                        <p key={`warning-${i}`} className="text-xs" style={{ color: '#C9A227' }}>
+                          • {warning}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {integrityReport.timestamp && (
+                    <p className="text-xs mt-2" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+                      Last checked: {new Date(integrityReport.timestamp).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              <button
+                onClick={handleIntegrityCheck}
+                disabled={runningIntegrityCheck}
+                className="w-full py-3 font-semibold"
+                style={{
+                  backgroundColor: '#C9A227',
+                  color: '#0F1115',
+                  borderRadius: '18px',
+                  opacity: runningIntegrityCheck ? 0.5 : 1
+                }}
+              >
+                {runningIntegrityCheck ? 'Checking...' : 'Run integrity check'}
+              </button>
+            </div>
 
             {/* Card 5: Developer */}
             <div

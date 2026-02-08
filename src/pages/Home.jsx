@@ -10,6 +10,7 @@ import WeeklySummary from '../components/WeeklySummary';
 import { getUserToday, getStartOfWeek } from '../components/dateUtils';
 import { format } from 'date-fns';
 import { SkeletonCard, SkeletonStat } from '../components/SkeletonLoader';
+import { runIntegrityCheck } from '../components/integrityUtils';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -118,6 +119,17 @@ export default function Home() {
         // Check if today's review exists
         const todayReviews = await base44.entities.DailyReview.filter({ userId, date: today });
         setTodayReviewExists(todayReviews.length > 0);
+        
+        // Run background integrity check (non-blocking)
+        runIntegrityCheck(profile).then(report => {
+          try {
+            localStorage.setItem('seanna_integrity_report', JSON.stringify(report));
+          } catch (e) {
+            console.error('Failed to store integrity report:', e);
+          }
+        }).catch(error => {
+          console.error('Integrity check failed silently:', error);
+        });
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
