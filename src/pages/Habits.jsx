@@ -9,10 +9,12 @@ import { getUserToday, calculateCurrentStreak } from '../components/dateUtils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { SkeletonCard } from '../components/SkeletonLoader';
+import PullToRefresh from '../components/PullToRefresh';
 
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [habitStreaks, setHabitStreaks] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
   const [habitCompletedToday, setHabitCompletedToday] = useState({});
   const [habitTodayStatus, setHabitTodayStatus] = useState({});
   const [loading, setLoading] = useState(true);
@@ -24,10 +26,9 @@ export default function Habits() {
   const [loggingHabit, setLoggingHabit] = useState(null);
   const [lastLogTime, setLastLogTime] = useState({});
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const currentUser = await base44.auth.me();
+  const loadData = async () => {
+    try {
+      const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
         const profile = userProfiles[0];
         const userId = profile?.id;
@@ -73,15 +74,22 @@ export default function Habits() {
           const duplicates = findDuplicateHabits(activeHabits);
           setDuplicateGroups(duplicates);
         }
-      } catch (error) {
-        console.error('Error loading habits:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+    } catch (error) {
+      console.error('Error loading habits:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+  };
 
   const findDuplicateHabits = (habits) => {
     const groups = [];
@@ -357,8 +365,9 @@ export default function Habits() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
-      <div className="p-6">
+    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115', overflow: 'hidden' }}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>

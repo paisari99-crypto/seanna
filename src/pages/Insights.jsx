@@ -6,8 +6,10 @@ import WeeklyPatternCard from '../components/WeeklyPatternCard';
 import { getMostConsistentHabit, getMostMissedHabit, getBestWeekday } from '../components/insightUtils';
 import { getMostConsistentHabit as getConsistent, getNeedsAttentionHabit, getStrongestDay } from '../components/analyticsUtils';
 import { SkeletonCard, SkeletonInsightCard } from '../components/SkeletonLoader';
+import PullToRefresh from '../components/PullToRefresh';
 
 export default function Insights() {
+  const [refreshing, setRefreshing] = useState(false);
   const [metrics, setMetrics] = useState({
     journalLast7: 0,
     journalLast30: 0,
@@ -28,10 +30,9 @@ export default function Insights() {
   const [analyticsNeedsAttention, setAnalyticsNeedsAttention] = useState(null);
   const [analyticsStrongestDay, setAnalyticsStrongestDay] = useState(null);
 
-  useEffect(() => {
-    const loadMetrics = async () => {
-      try {
-        const currentUser = await base44.auth.me();
+  const loadMetrics = async () => {
+    try {
+      const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
         const userId = userProfiles[0]?.id;
 
@@ -102,15 +103,22 @@ export default function Insights() {
           decisionsWithScoring,
           totalHabitLogs
         });
-      } catch (error) {
-        console.error('Error loading metrics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error('Error loading metrics:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     loadMetrics();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadMetrics();
+  };
 
   const handleGenerateWeeklyReview = async () => {
     if (!userProfile || userProfile.planTier !== 'premium') {
@@ -232,8 +240,9 @@ Provide a structured weekly review in the following JSON format:
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
-      <div className="p-6">
+    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115', overflow: 'hidden' }}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="p-6">
         <div className="mb-6">
           <h1 className="text-3xl font-semibold mb-1" style={{ color: '#E8EAF0' }}>
             Insights
@@ -648,7 +657,8 @@ Provide a structured weekly review in the following JSON format:
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </PullToRefresh>
       
       <BottomNav />
     </div>

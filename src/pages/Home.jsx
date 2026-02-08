@@ -11,10 +11,12 @@ import { getUserToday, getStartOfWeek } from '../components/dateUtils';
 import { format } from 'date-fns';
 import { SkeletonCard, SkeletonStat } from '../components/SkeletonLoader';
 import { runIntegrityCheck } from '../components/integrityUtils';
+import PullToRefresh from '../components/PullToRefresh';
 
 export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [habitCount, setHabitCount] = useState(0);
   const [hasLoggedToday, setHasLoggedToday] = useState(false);
   const [totalActiveHabits, setTotalActiveHabits] = useState(0);
@@ -30,10 +32,9 @@ export default function Home() {
   const urlParams = new URLSearchParams(window.location.search);
   const justCompleted = urlParams.get('justCompleted') === 'true';
 
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      try {
-        const currentUser = await base44.auth.me();
+  const loadData = async () => {
+    try {
+      const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
 
         if (userProfiles.length === 0 || !userProfiles[0].displayName) {
@@ -130,15 +131,22 @@ export default function Home() {
         }).catch(error => {
           console.error('Integrity check failed silently:', error);
         });
-      } catch (error) {
-        console.error('Error checking onboarding:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-    checkOnboarding();
+  useEffect(() => {
+    loadData();
   }, [navigate]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+  };
   
   const handleDismissBanner = () => {
     const dismissUntil = new Date();
@@ -300,8 +308,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
-      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
+    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115', overflow: 'hidden' }}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
@@ -445,6 +454,7 @@ export default function Home() {
           })}
         </div>
       </div>
+      </PullToRefresh>
       
       <BottomNav />
     </div>
