@@ -100,7 +100,7 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
     const isNewFormat = backupData.habitLogs?.some(log => log.habitExternalId !== undefined);
 
     // Check required sections
-    const requiredSections = ['habits', 'habitLogs', 'journalEntries', 'decisions'];
+    const requiredSections = ['habits', 'habitLogs', 'journalEntries', 'decisions', 'dailyReviews'];
     requiredSections.forEach(section => {
       if (!backupData[section]) {
         warnings.push(`Missing ${section} section - will be treated as empty`);
@@ -121,7 +121,8 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
         habits: backupData.habits || [],
         habitLogs: backupData.habitLogs || [],
         journalEntries: backupData.journalEntries || [],
-        decisions: backupData.decisions || []
+        decisions: backupData.decisions || [],
+        dailyReviews: backupData.dailyReviews || []
       }
     };
   };
@@ -135,6 +136,7 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
       const habitLogs = Array.isArray(sections.habitLogs) ? sections.habitLogs : [];
       const journalEntries = Array.isArray(sections.journalEntries) ? sections.journalEntries : [];
       const decisions = Array.isArray(sections.decisions) ? sections.decisions : [];
+      const dailyReviews = Array.isArray(sections.dailyReviews) ? sections.dailyReviews : [];
 
       // Build habit ID to externalId mapping from backup
       const habitIdToExternalId = new Map();
@@ -217,12 +219,25 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
           }
         });
       }
+      
+      // Fetch existing daily reviews
+      const existingReviews = await base44.entities.DailyReview.filter({ userId: currentUserId });
+      const existingReviewsByDate = new Map();
+      
+      if (Array.isArray(existingReviews)) {
+        existingReviews.forEach(r => {
+          if (r && r.date) {
+            existingReviewsByDate.set(`${currentUserId}|${r.date}`, r);
+          }
+        });
+      }
 
       const preview = {
         habits: { create: [], skip: [], duplicates: [] },
         habitLogs: { create: [], skip: [], duplicates: [] },
         journalEntries: { create: [], skip: [], duplicates: [] },
         decisions: { create: [], skip: [], duplicates: [] },
+        dailyReviews: { create: [], skip: [], duplicates: [] },
         unmatchedHabitRefs: [],
         missingHabitIds: new Set(),
         warnings: [],
@@ -314,6 +329,22 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
           }
         });
       }
+      
+      // Process daily reviews - defensive
+      if (Array.isArray(dailyReviews)) {
+        dailyReviews.forEach(review => {
+          if (!review || !review.date) return;
+          
+          const reviewKey = `${currentUserId}|${review.date}`;
+          
+          if (existingReviewsByDate.has(reviewKey)) {
+            preview.dailyReviews.skip.push(review);
+            preview.dailyReviews.duplicates.push({ type: 'DailyReview', date: review.date });
+          } else {
+            preview.dailyReviews.create.push(review);
+          }
+        });
+      }
 
       // Process habit logs - strict validation and mapping
       const processedLogKeys = new Set();
@@ -402,7 +433,8 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
         habits: { created: 0, skipped: 0, errors: [] },
         habitLogs: { created: 0, skipped: 0, errors: [] },
         journalEntries: { created: 0, skipped: 0, errors: [] },
-        decisions: { created: 0, skipped: 0, errors: [] }
+        decisions: { created: 0, skipped: 0, errors: [] },
+        dailyReviews: { created: 0, skipped: 0, errors: [] }
       };
 
       // Fetch existing habits and build externalId -> internal ID map (defensive)
@@ -593,13 +625,48 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
       }
 
       results.decisions.skipped = Array.isArray(preview.decisions.skip) ? preview.decisions.skip.length : 0;
+      
+      // Import daily reviews (defensive)
+      const reviewsToCreate = Array.isArray(preview.dailyReviews.create) ? preview.dailyReviews.create : [];
+      
+      for (const review of reviewsToCreate) {
+        try {
+          if (!review || !review.date) {
+            continue;
+          }
+          
+          const { id, created_date, updated_date, created_by, userId, ...data } = review;
+          
+          if (!data.externalId) {
+            data.externalId = generateExternalId();
+          }
+          
+          const newReview = await base44.entities.DailyReview.create({
+            ...data,
+            userId: currentUserId
+          });
+          
+          if (newReview && newReview.id) {
+            createdIds.dailyReviews = createdIds.dailyReviews || [];
+            createdIds.dailyReviews.push(newReview.id);
+          }
+          
+          results.dailyReviews.created++;
+        } catch (error) {
+          console.error('Failed to create daily review:', error);
+          throw new Error(`Failed to create review for ${review?.date || 'unknown'}: ${error.message}`);
+        }
+      }
+
+      results.dailyReviews.skipped = Array.isArray(preview.dailyReviews.skip) ? preview.dailyReviews.skip.length : 0;
 
       return {
         ok: true,
         habits: results.habits,
         habitLogs: results.habitLogs,
         journalEntries: results.journalEntries,
-        decisions: results.decisions
+        decisions: results.decisions,
+        dailyReviews: results.dailyReviews
       };
     } catch (error) {
       // Rollback: delete all created records
@@ -613,6 +680,11 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
           ...(Array.isArray(createdIds.habits) ? createdIds.habits : [])
         ];
         
+        for (const id of createdIds.dailyReviews || []) {
+          if (id) {
+            await base44.entities.DailyReview.delete(id).catch(e => console.error('Rollback error:', e));
+          }
+        }
         for (const id of createdIds.decisions || []) {
           if (id) {
             await base44.entities.Decision.delete(id).catch(e => console.error('Rollback error:', e));
@@ -642,7 +714,8 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
         habits: { created: 0, skipped: 0, errors: [error.message] },
         habitLogs: { created: 0, skipped: 0, errors: [] },
         journalEntries: { created: 0, skipped: 0, errors: [] },
-        decisions: { created: 0, skipped: 0, errors: [] }
+        decisions: { created: 0, skipped: 0, errors: [] },
+        dailyReviews: { created: 0, skipped: 0, errors: [] }
       };
     }
   };
@@ -873,6 +946,7 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
             <p>Habit logs: {importPreview.habitLogs.create.length} new, {importPreview.habitLogs.skip.length} duplicates</p>
             <p>Journal entries: {importPreview.journalEntries.create.length} new, {importPreview.journalEntries.skip.length} duplicates</p>
             <p>Decisions: {importPreview.decisions.create.length} new, {importPreview.decisions.skip.length} duplicates</p>
+            <p>Daily reviews: {importPreview.dailyReviews.create.length} new, {importPreview.dailyReviews.skip.length} duplicates</p>
           </div>
 
           {totalSkip > 0 && (
@@ -980,6 +1054,7 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
             <p>Habit logs: {importResult.habitLogs.created} created, {importResult.habitLogs.skipped} skipped</p>
             <p>Journal entries: {importResult.journalEntries.created} created, {importResult.journalEntries.skipped} skipped</p>
             <p>Decisions: {importResult.decisions.created} created, {importResult.decisions.skipped} skipped</p>
+            <p>Daily reviews: {importResult.dailyReviews.created} created, {importResult.dailyReviews.skipped} skipped</p>
           </div>
 
           {hasErrors && (

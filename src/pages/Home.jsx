@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { BookOpen, Target, GitBranch, TrendingUp, Settings } from 'lucide-react';
+import { BookOpen, Target, GitBranch, TrendingUp, Settings, FileText, ChevronRight } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import GuidanceCard from '../components/GuidanceCard';
 import TodaySummary from '../components/TodaySummary';
@@ -23,6 +23,7 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState(null);
   const [showBackupBanner, setShowBackupBanner] = useState(false);
   const [backupExporting, setBackupExporting] = useState(false);
+  const [todayReviewExists, setTodayReviewExists] = useState(false);
   
   // Check if just completed a habit
   const urlParams = new URLSearchParams(window.location.search);
@@ -113,6 +114,10 @@ export default function Home() {
           log.date >= startOfLastWeekStr && log.date < startOfWeekStr && log.status === 'done'
         ).length;
         setLastWeekCount(lastWeekCompleted);
+        
+        // Check if today's review exists
+        const todayReviews = await base44.entities.DailyReview.filter({ userId, date: today });
+        setTodayReviewExists(todayReviews.length > 0);
       } catch (error) {
         console.error('Error checking onboarding:', error);
       } finally {
@@ -374,6 +379,29 @@ export default function Home() {
           lastWeekCount={lastWeekCount}
           totalHabits={totalActiveHabits}
         />
+        
+        <button
+          onClick={() => navigate(createPageUrl('DailyReview'))}
+          className="w-full p-4 flex items-center justify-between mb-3"
+          style={{
+            backgroundColor: '#1A1D24',
+            borderRadius: '18px',
+            border: '1px solid rgba(202, 162, 39, 0.2)'
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <FileText size={24} style={{ color: '#C9A227' }} />
+            <div className="text-left">
+              <p className="font-semibold" style={{ color: '#E8EAF0' }}>
+                {todayReviewExists ? "Edit today's review" : 'Daily review'}
+              </p>
+              <p className="text-xs" style={{ color: '#9AA3B2' }}>
+                Reflect on your day
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={20} style={{ color: '#9AA3B2' }} />
+        </button>
 
         <div className="grid grid-cols-2 gap-3">
           {cards.map((card, index) => {

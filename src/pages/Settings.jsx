@@ -193,12 +193,14 @@ export default function Settings() {
       let logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
       let journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
       let decisions = await base44.entities.Decision.filter({ userId: userProfile.id });
+      let dailyReviews = await base44.entities.DailyReview.filter({ userId: userProfile.id });
       
       // Ensure all records have externalIds
       habits = await ensureExternalIds(habits, 'Habit');
       logs = await ensureExternalIds(logs, 'HabitLog');
       journalEntries = await ensureExternalIds(journalEntries, 'JournalEntry');
       decisions = await ensureExternalIds(decisions, 'Decision');
+      dailyReviews = await ensureExternalIds(dailyReviews, 'DailyReview');
       
       // Build habit id to externalId map
       const habitIdToExtId = new Map(habits.map(h => [h.id, h.externalId]));
@@ -238,6 +240,7 @@ export default function Settings() {
         habitLogs: validLogs,
         journalEntries,
         decisions,
+        dailyReviews,
         ...(exportWarnings.length > 0 && { exportWarnings })
       };
       
