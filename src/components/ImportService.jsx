@@ -266,133 +266,176 @@ export default function ImportService({ userProfile, onComplete }) {
 
   const executeImport = async (sections, preview, isNewFormat) => {
     const currentUserId = userProfile.id;
-    const results = {
-      habits: { created: 0, skipped: 0, errors: [] },
-      habitLogs: { created: 0, skipped: 0, errors: [] },
-      journalEntries: { created: 0, skipped: 0, errors: [] },
-      decisions: { created: 0, skipped: 0, errors: [] }
+    const createdIds = {
+      habits: [],
+      habitLogs: [],
+      journalEntries: [],
+      decisions: []
     };
-
-    // Fetch existing habits and build externalId -> internal ID map
-    const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
-    const habitExtIdToInternalId = new Map();
     
-    existingHabits.forEach(h => {
-      if (h.externalId) {
-        habitExtIdToInternalId.set(h.externalId, h.id);
-      }
-    });
+    try {
+      const results = {
+        habits: { created: 0, skipped: 0, errors: [] },
+        habitLogs: { created: 0, skipped: 0, errors: [] },
+        journalEntries: { created: 0, skipped: 0, errors: [] },
+        decisions: { created: 0, skipped: 0, errors: [] }
+      };
 
-    // Import habits
-    for (const habit of preview.habits.create) {
+      // Fetch existing habits and build externalId -> internal ID map
+      const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
+      const habitExtIdToInternalId = new Map();
+      
+      existingHabits.forEach(h => {
+        if (h.externalId) {
+          habitExtIdToInternalId.set(h.externalId, h.id);
+        }
+      });
+
+      // Import habits
+      for (const habit of preview.habits.create) {
+        try {
+          const { id, created_date, updated_date, created_by, userId, ...data } = habit;
+          
+          // Generate externalId if not present (backward compatibility)
+          if (!data.externalId) {
+            data.externalId = generateExternalId();
+          }
+          
+          const newHabit = await base44.entities.Habit.create({
+            ...data,
+            userId: currentUserId
+          });
+          
+          // Track for rollback
+          createdIds.habits.push(newHabit.id);
+          
+          // Track mapping for logs
+          habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
+          
+          results.habits.created++;
+        } catch (error) {
+          console.error('Failed to create habit:', error);
+          throw new Error(`Failed to create habit "${habit.name}": ${error.message}`);
+        }
+      }
+
+      results.habits.skipped = preview.habits.skip.length;
+
+      // Import habit logs
+      for (const log of preview.habitLogs.create) {
+        try {
+          const { id, created_date, updated_date, created_by, userId, habitId, habitExternalId, ...data } = log;
+          
+          // Generate externalId for the log if not present
+          if (!data.externalId) {
+            data.externalId = generateExternalId();
+          }
+          
+          // Resolve habit by externalId
+          let resolvedHabitExternalId;
+          
+          if (isNewFormat && habitExternalId) {
+            resolvedHabitExternalId = habitExternalId;
+          } else if (habitId) {
+            // Old format: lookup habit in backup
+            const habitFromBackup = sections.habits.find(h => h.id === habitId);
+            resolvedHabitExternalId = habitFromBackup?.externalId;
+          }
+          
+          const actualHabitId = habitExtIdToInternalId.get(resolvedHabitExternalId);
+          
+          if (!actualHabitId) {
+            throw new Error('Habit not found for log');
+          }
+          
+          const newLog = await base44.entities.HabitLog.create({
+            ...data,
+            habitId: actualHabitId,
+            userId: currentUserId
+          });
+          
+          createdIds.habitLogs.push(newLog.id);
+          results.habitLogs.created++;
+        } catch (error) {
+          console.error('Failed to create log:', error);
+          throw new Error(`Failed to create log: ${error.message}`);
+        }
+      }
+
+      results.habitLogs.skipped = preview.habitLogs.skip.length;
+
+      // Import journal entries
+      for (const entry of preview.journalEntries.create) {
+        try {
+          const { id, created_date, updated_date, created_by, userId, ...data } = entry;
+          
+          if (!data.externalId) {
+            data.externalId = generateExternalId();
+          }
+          
+          const newEntry = await base44.entities.JournalEntry.create({
+            ...data,
+            userId: currentUserId
+          });
+          
+          createdIds.journalEntries.push(newEntry.id);
+          results.journalEntries.created++;
+        } catch (error) {
+          console.error('Failed to create journal entry:', error);
+          throw new Error(`Failed to create journal "${entry.title || 'Untitled'}": ${error.message}`);
+        }
+      }
+
+      results.journalEntries.skipped = preview.journalEntries.skip.length;
+
+      // Import decisions
+      for (const decision of preview.decisions.create) {
+        try {
+          const { id, created_date, updated_date, created_by, userId, ...data } = decision;
+          
+          if (!data.externalId) {
+            data.externalId = generateExternalId();
+          }
+          
+          const newDecision = await base44.entities.Decision.create({
+            ...data,
+            userId: currentUserId
+          });
+          
+          createdIds.decisions.push(newDecision.id);
+          results.decisions.created++;
+        } catch (error) {
+          console.error('Failed to create decision:', error);
+          throw new Error(`Failed to create decision "${decision.title}": ${error.message}`);
+        }
+      }
+
+      results.decisions.skipped = preview.decisions.skip.length;
+
+      return results;
+    } catch (error) {
+      // Rollback: delete all created records
+      console.error('Import failed, rolling back...', error);
+      
       try {
-        const { id, created_date, updated_date, created_by, userId, ...data } = habit;
-        
-        // Generate externalId if not present (backward compatibility)
-        if (!data.externalId) {
-          data.externalId = generateExternalId();
+        for (const id of createdIds.decisions) {
+          await base44.entities.Decision.delete(id).catch(e => console.error('Rollback error:', e));
         }
-        
-        const newHabit = await base44.entities.Habit.create({
-          ...data,
-          userId: currentUserId
-        });
-        
-        // Track mapping for logs
-        habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
-        
-        results.habits.created++;
-      } catch (error) {
-        results.habits.errors.push(`Failed to create habit "${habit.name}": ${error.message}`);
+        for (const id of createdIds.journalEntries) {
+          await base44.entities.JournalEntry.delete(id).catch(e => console.error('Rollback error:', e));
+        }
+        for (const id of createdIds.habitLogs) {
+          await base44.entities.HabitLog.delete(id).catch(e => console.error('Rollback error:', e));
+        }
+        for (const id of createdIds.habits) {
+          await base44.entities.Habit.delete(id).catch(e => console.error('Rollback error:', e));
+        }
+      } catch (rollbackError) {
+        console.error('Rollback failed:', rollbackError);
       }
+      
+      throw new Error('Import failed. No data was changed.');
     }
-
-    results.habits.skipped = preview.habits.skip.length;
-
-    // Import habit logs
-    for (const log of preview.habitLogs.create) {
-      try {
-        const { id, created_date, updated_date, created_by, userId, habitId, habitExternalId, ...data } = log;
-        
-        // Generate externalId for the log if not present
-        if (!data.externalId) {
-          data.externalId = generateExternalId();
-        }
-        
-        // Resolve habit by externalId
-        let resolvedHabitExternalId;
-        
-        if (isNewFormat && habitExternalId) {
-          resolvedHabitExternalId = habitExternalId;
-        } else if (habitId) {
-          // Old format: lookup habit in backup
-          const habitFromBackup = sections.habits.find(h => h.id === habitId);
-          resolvedHabitExternalId = habitFromBackup?.externalId;
-        }
-        
-        const actualHabitId = habitExtIdToInternalId.get(resolvedHabitExternalId);
-        
-        if (!actualHabitId) {
-          results.habitLogs.errors.push(`Failed to create log: habit not found`);
-          continue;
-        }
-        
-        await base44.entities.HabitLog.create({
-          ...data,
-          habitId: actualHabitId,
-          userId: currentUserId
-        });
-        results.habitLogs.created++;
-      } catch (error) {
-        results.habitLogs.errors.push(`Failed to create log: ${error.message}`);
-      }
-    }
-
-    results.habitLogs.skipped = preview.habitLogs.skip.length;
-
-    // Import journal entries
-    for (const entry of preview.journalEntries.create) {
-      try {
-        const { id, created_date, updated_date, created_by, userId, ...data } = entry;
-        
-        if (!data.externalId) {
-          data.externalId = generateExternalId();
-        }
-        
-        await base44.entities.JournalEntry.create({
-          ...data,
-          userId: currentUserId
-        });
-        results.journalEntries.created++;
-      } catch (error) {
-        results.journalEntries.errors.push(`Failed to create journal "${entry.title || 'Untitled'}": ${error.message}`);
-      }
-    }
-
-    results.journalEntries.skipped = preview.journalEntries.skip.length;
-
-    // Import decisions
-    for (const decision of preview.decisions.create) {
-      try {
-        const { id, created_date, updated_date, created_by, userId, ...data } = decision;
-        
-        if (!data.externalId) {
-          data.externalId = generateExternalId();
-        }
-        
-        await base44.entities.Decision.create({
-          ...data,
-          userId: currentUserId
-        });
-        results.decisions.created++;
-      } catch (error) {
-        results.decisions.errors.push(`Failed to create decision "${decision.title}": ${error.message}`);
-      }
-    }
-
-    results.decisions.skipped = preview.decisions.skip.length;
-
-    return results;
   };
 
   const handleFileSelect = async (event) => {
@@ -434,8 +477,9 @@ export default function ImportService({ userProfile, onComplete }) {
       setImportResult(result);
       setStage('complete');
     } catch (err) {
-      setError(err.message || 'Import failed');
-      setStage('preview');
+      console.error('Import error:', err);
+      setError(err.message || 'Import failed. No data was changed.');
+      setStage('idle');
     }
   };
 
