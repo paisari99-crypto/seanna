@@ -87,13 +87,20 @@ export default function ImportService({ userProfile, onComplete }) {
   };
 
   const generateImportPreview = async (sections, isNewFormat) => {
-    const currentUserId = userProfile.id;
+    try {
+      const currentUserId = userProfile.id;
 
-    // Fetch existing records
-    const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
-    const existingLogs = await base44.entities.HabitLog.filter({ userId: currentUserId });
-    const existingJournals = await base44.entities.JournalEntry.filter({ userId: currentUserId });
-    const existingDecisions = await base44.entities.Decision.filter({ userId: currentUserId });
+      // Normalize sections (defensive)
+      const habits = Array.isArray(sections.habits) ? sections.habits : [];
+      const habitLogs = Array.isArray(sections.habitLogs) ? sections.habitLogs : [];
+      const journalEntries = Array.isArray(sections.journalEntries) ? sections.journalEntries : [];
+      const decisions = Array.isArray(sections.decisions) ? sections.decisions : [];
+
+      // Fetch existing records
+      const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
+      const existingLogs = await base44.entities.HabitLog.filter({ userId: currentUserId });
+      const existingJournals = await base44.entities.JournalEntry.filter({ userId: currentUserId });
+      const existingDecisions = await base44.entities.Decision.filter({ userId: currentUserId });
 
     // Build lookup maps by externalId (primary) and content key (fallback)
     const existingHabitsByExtId = new Map();
@@ -211,57 +218,68 @@ export default function ImportService({ userProfile, onComplete }) {
       }
     });
 
-    // Process habit logs - only create logs for habits that will exist
-    const processedLogKeys = new Set();
-    
-    sections.habitLogs.forEach(log => {
-      let habitExternalId;
+      // Process habit logs - only create logs for habits that will exist (defensive)
+      const processedLogKeys = new Set();
       
-      // New format: log has habitExternalId directly
-      if (isNewFormat && log.habitExternalId) {
-        habitExternalId = log.habitExternalId;
+      if (Array.isArray(habitLogs)) {
+        habitLogs.forEach(log => {
+          if (!log) {
+            return;
+          }
+          
+          let habitExternalId;
+          
+          // New format: log has habitExternalId directly
+          if (isNewFormat && log.habitExternalId) {
+            habitExternalId = log.habitExternalId;
+          }
+          // Old format: resolve via habitId in backup
+          else if (log.habitId) {
+            const habitFromBackup = habits.find(h => h && h.id === log.habitId);
+            habitExternalId = habitFromBackup?.externalId;
+            
+            // If habit not in backup, check if it exists in user's account
+            if (!habitExternalId && Array.isArray(existingHabits)) {
+              const existingHabit = existingHabits.find(h => h && h.id === log.habitId);
+              habitExternalId = existingHabit?.externalId;
+            }
+          }
+          
+          // Skip logs without a valid habitExternalId
+          if (!habitExternalId) {
+            preview.habitLogs.skip.push(log);
+            preview.unmatchedHabitRefs.push(log);
+            return;
+          }
+          
+          // Check if habit exists (either in backup to be created, or already exists)
+          const habitWillExist = 
+            (Array.isArray(habits) && habits.some(h => h && h.externalId === habitExternalId)) ||
+            existingHabitsByExtId.has(habitExternalId);
+            
+          // Skip logs that reference non-existent habits
+          if (!habitWillExist) {
+            preview.habitLogs.skip.push(log);
+            preview.unmatchedHabitRefs.push(log);
+            return;
+          }
+          
+          // Deduplicate by composite key
+          if (!log.date) {
+            preview.habitLogs.skip.push(log);
+            return;
+          }
+          
+          const logKey = `${habitExternalId}|${log.date}`;
+          
+          if (existingLogsByCompositeKey.has(logKey) || processedLogKeys.has(logKey)) {
+            preview.habitLogs.skip.push(log);
+          } else {
+            preview.habitLogs.create.push(log);
+            processedLogKeys.add(logKey);
+          }
+        });
       }
-      // Old format: resolve via habitId in backup
-      else if (log.habitId) {
-        const habitFromBackup = sections.habits.find(h => h.id === log.habitId);
-        habitExternalId = habitFromBackup?.externalId;
-        
-        // If habit not in backup, check if it exists in user's account
-        if (!habitExternalId) {
-          const existingHabit = existingHabits.find(h => h.id === log.habitId);
-          habitExternalId = existingHabit?.externalId;
-        }
-      }
-      
-      // Skip logs without a valid habitExternalId
-      if (!habitExternalId) {
-        preview.habitLogs.skip.push(log);
-        preview.unmatchedHabitRefs.push(log);
-        return;
-      }
-      
-      // Check if habit exists (either in backup to be created, or already exists)
-      const habitWillExist = 
-        sections.habits.some(h => h.externalId === habitExternalId) ||
-        existingHabitsByExtId.has(habitExternalId);
-        
-      // Skip logs that reference non-existent habits
-      if (!habitWillExist) {
-        preview.habitLogs.skip.push(log);
-        preview.unmatchedHabitRefs.push(log);
-        return;
-      }
-      
-      // Deduplicate by composite key
-      const logKey = `${habitExternalId}|${log.date}`;
-      
-      if (existingLogsByCompositeKey.has(logKey) || processedLogKeys.has(logKey)) {
-        preview.habitLogs.skip.push(log);
-      } else {
-        preview.habitLogs.create.push(log);
-        processedLogKeys.add(logKey);
-      }
-    });
 
     return preview;
   };
@@ -283,19 +301,27 @@ export default function ImportService({ userProfile, onComplete }) {
         decisions: { created: 0, skipped: 0, errors: [] }
       };
 
-      // Fetch existing habits and build externalId -> internal ID map
+      // Fetch existing habits and build externalId -> internal ID map (defensive)
       const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
       const habitExtIdToInternalId = new Map();
       
-      existingHabits.forEach(h => {
-        if (h.externalId) {
-          habitExtIdToInternalId.set(h.externalId, h.id);
-        }
-      });
+      if (Array.isArray(existingHabits)) {
+        existingHabits.forEach(h => {
+          if (h && h.externalId && h.id) {
+            habitExtIdToInternalId.set(h.externalId, h.id);
+          }
+        });
+      }
 
-      // Import habits
-      for (const habit of preview.habits.create) {
+      // Import habits (defensive)
+      const habitsToCreate = Array.isArray(preview.habits.create) ? preview.habits.create : [];
+      
+      for (const habit of habitsToCreate) {
         try {
+          if (!habit) {
+            continue;
+          }
+          
           const { id, created_date, updated_date, created_by, userId, ...data } = habit;
           
           // Generate externalId if not present (backward compatibility)
@@ -309,23 +335,33 @@ export default function ImportService({ userProfile, onComplete }) {
           });
           
           // Track for rollback
-          createdIds.habits.push(newHabit.id);
-          
-          // Track mapping for logs
-          habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
+          if (newHabit && newHabit.id) {
+            createdIds.habits.push(newHabit.id);
+            
+            // Track mapping for logs
+            if (newHabit.externalId) {
+              habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
+            }
+          }
           
           results.habits.created++;
         } catch (error) {
           console.error('Failed to create habit:', error);
-          throw new Error(`Failed to create habit "${habit.name}": ${error.message}`);
+          throw new Error(`Failed to create habit "${habit?.name || 'unknown'}": ${error.message}`);
         }
       }
 
-      results.habits.skipped = preview.habits.skip.length;
+      results.habits.skipped = Array.isArray(preview.habits.skip) ? preview.habits.skip.length : 0;
 
-      // Import habit logs - only create if habit reference can be resolved
-      for (const log of preview.habitLogs.create) {
+      // Import habit logs - only create if habit reference can be resolved (defensive)
+      const logsToCreate = Array.isArray(preview.habitLogs.create) ? preview.habitLogs.create : [];
+      
+      for (const log of logsToCreate) {
         try {
+          if (!log) {
+            continue;
+          }
+          
           const { id, created_date, updated_date, created_by, userId, habitId, habitExternalId, ...data } = log;
           
           // Generate externalId for the log if not present
@@ -340,7 +376,8 @@ export default function ImportService({ userProfile, onComplete }) {
             resolvedHabitExternalId = habitExternalId;
           } else if (habitId) {
             // Old format: lookup habit in backup
-            const habitFromBackup = sections.habits.find(h => h.id === habitId);
+            const backupHabits = Array.isArray(sections.habits) ? sections.habits : [];
+            const habitFromBackup = backupHabits.find(h => h && h.id === habitId);
             resolvedHabitExternalId = habitFromBackup?.externalId;
           }
           
@@ -359,7 +396,10 @@ export default function ImportService({ userProfile, onComplete }) {
             userId: currentUserId
           });
           
-          createdIds.habitLogs.push(newLog.id);
+          if (newLog && newLog.id) {
+            createdIds.habitLogs.push(newLog.id);
+          }
+          
           results.habitLogs.created++;
         } catch (error) {
           console.error('Failed to create log:', error);
@@ -367,11 +407,17 @@ export default function ImportService({ userProfile, onComplete }) {
         }
       }
 
-      results.habitLogs.skipped = preview.habitLogs.skip.length;
+      results.habitLogs.skipped = Array.isArray(preview.habitLogs.skip) ? preview.habitLogs.skip.length : 0;
 
-      // Import journal entries
-      for (const entry of preview.journalEntries.create) {
+      // Import journal entries (defensive)
+      const journalsToCreate = Array.isArray(preview.journalEntries.create) ? preview.journalEntries.create : [];
+      
+      for (const entry of journalsToCreate) {
         try {
+          if (!entry) {
+            continue;
+          }
+          
           const { id, created_date, updated_date, created_by, userId, ...data } = entry;
           
           if (!data.externalId) {
@@ -383,19 +429,28 @@ export default function ImportService({ userProfile, onComplete }) {
             userId: currentUserId
           });
           
-          createdIds.journalEntries.push(newEntry.id);
+          if (newEntry && newEntry.id) {
+            createdIds.journalEntries.push(newEntry.id);
+          }
+          
           results.journalEntries.created++;
         } catch (error) {
           console.error('Failed to create journal entry:', error);
-          throw new Error(`Failed to create journal "${entry.title || 'Untitled'}": ${error.message}`);
+          throw new Error(`Failed to create journal "${entry?.title || 'Untitled'}": ${error.message}`);
         }
       }
 
-      results.journalEntries.skipped = preview.journalEntries.skip.length;
+      results.journalEntries.skipped = Array.isArray(preview.journalEntries.skip) ? preview.journalEntries.skip.length : 0;
 
-      // Import decisions
-      for (const decision of preview.decisions.create) {
+      // Import decisions (defensive)
+      const decisionsToCreate = Array.isArray(preview.decisions.create) ? preview.decisions.create : [];
+      
+      for (const decision of decisionsToCreate) {
         try {
+          if (!decision) {
+            continue;
+          }
+          
           const { id, created_date, updated_date, created_by, userId, ...data } = decision;
           
           if (!data.externalId) {
@@ -407,15 +462,18 @@ export default function ImportService({ userProfile, onComplete }) {
             userId: currentUserId
           });
           
-          createdIds.decisions.push(newDecision.id);
+          if (newDecision && newDecision.id) {
+            createdIds.decisions.push(newDecision.id);
+          }
+          
           results.decisions.created++;
         } catch (error) {
           console.error('Failed to create decision:', error);
-          throw new Error(`Failed to create decision "${decision.title}": ${error.message}`);
+          throw new Error(`Failed to create decision "${decision?.title || 'unknown'}": ${error.message}`);
         }
       }
 
-      results.decisions.skipped = preview.decisions.skip.length;
+      results.decisions.skipped = Array.isArray(preview.decisions.skip) ? preview.decisions.skip.length : 0;
 
       return results;
     } catch (error) {
@@ -423,17 +481,32 @@ export default function ImportService({ userProfile, onComplete }) {
       console.error('Import failed, rolling back...', error);
       
       try {
-        for (const id of createdIds.decisions) {
-          await base44.entities.Decision.delete(id).catch(e => console.error('Rollback error:', e));
+        const allIds = [
+          ...(Array.isArray(createdIds.decisions) ? createdIds.decisions : []),
+          ...(Array.isArray(createdIds.journalEntries) ? createdIds.journalEntries : []),
+          ...(Array.isArray(createdIds.habitLogs) ? createdIds.habitLogs : []),
+          ...(Array.isArray(createdIds.habits) ? createdIds.habits : [])
+        ];
+        
+        for (const id of createdIds.decisions || []) {
+          if (id) {
+            await base44.entities.Decision.delete(id).catch(e => console.error('Rollback error:', e));
+          }
         }
-        for (const id of createdIds.journalEntries) {
-          await base44.entities.JournalEntry.delete(id).catch(e => console.error('Rollback error:', e));
+        for (const id of createdIds.journalEntries || []) {
+          if (id) {
+            await base44.entities.JournalEntry.delete(id).catch(e => console.error('Rollback error:', e));
+          }
         }
-        for (const id of createdIds.habitLogs) {
-          await base44.entities.HabitLog.delete(id).catch(e => console.error('Rollback error:', e));
+        for (const id of createdIds.habitLogs || []) {
+          if (id) {
+            await base44.entities.HabitLog.delete(id).catch(e => console.error('Rollback error:', e));
+          }
         }
-        for (const id of createdIds.habits) {
-          await base44.entities.Habit.delete(id).catch(e => console.error('Rollback error:', e));
+        for (const id of createdIds.habits || []) {
+          if (id) {
+            await base44.entities.Habit.delete(id).catch(e => console.error('Rollback error:', e));
+          }
         }
       } catch (rollbackError) {
         console.error('Rollback failed:', rollbackError);
