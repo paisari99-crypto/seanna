@@ -308,7 +308,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115', overflow: 'hidden' }}>
+    <div className="min-h-screen pb-16" style={{ backgroundColor: '#0F1115' }}>
       <PullToRefresh onRefresh={handleRefresh}>
         <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <div className="flex justify-between items-start">
