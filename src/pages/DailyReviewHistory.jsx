@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -37,16 +37,19 @@ export default function DailyReviewHistory() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#0F1115' }}>
+      <div className="min-h-screen animate-fadeIn" style={{ backgroundColor: '#0F1115' }}>
         <div className="p-6">
-          <p style={{ color: '#9AA3B2' }}>Loading...</p>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-2 h-2 rounded-full bg-[#C9A227] animate-pulse" />
+            <p style={{ color: '#9AA3B2' }}>Loading reviews...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-6" style={{ backgroundColor: '#0F1115' }}>
+    <div className="min-h-screen pb-6 animate-fadeIn" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
         <button
           onClick={() => navigate(-1)}
@@ -67,20 +70,30 @@ export default function DailyReviewHistory() {
 
         {reviews.length === 0 ? (
           <div
-            className="p-6 text-center"
+            className="p-8 text-center"
             style={{
               backgroundColor: '#1A1D24',
               borderRadius: '18px'
             }}
           >
-            <p style={{ color: '#9AA3B2' }}>No reviews yet</p>
+            <div className="mb-4">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(201, 162, 39, 0.1)' }}>
+                <FileText size={32} style={{ color: '#C9A227', opacity: 0.5 }} />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+              No reviews yet
+            </h3>
+            <p className="text-sm mb-4" style={{ color: '#9AA3B2' }}>
+              Start your first daily review to track your progress.
+            </p>
             <button
               onClick={() => navigate(createPageUrl('DailyReview'))}
-              className="mt-4 px-4 py-2 font-semibold"
+              className="px-6 py-3 font-semibold transition-all hover:opacity-90"
               style={{
                 backgroundColor: '#C9A227',
                 color: '#0F1115',
-                borderRadius: '12px'
+                borderRadius: '18px'
               }}
             >
               Create first review
@@ -88,14 +101,15 @@ export default function DailyReviewHistory() {
           </div>
         ) : (
           <div className="space-y-3">
-            {reviews.map((review) => (
+            {reviews.map((review, index) => (
               <button
                 key={review.id}
                 onClick={() => navigate(createPageUrl('DailyReview'))}
-                className="w-full text-left p-4 flex items-center justify-between"
+                className="w-full text-left p-4 flex items-center justify-between transition-all hover:opacity-80 animate-slideUp"
                 style={{
                   backgroundColor: '#1A1D24',
-                  borderRadius: '18px'
+                  borderRadius: '18px',
+                  animationDelay: `${index * 30}ms`
                 }}
               >
                 <div className="flex-1">

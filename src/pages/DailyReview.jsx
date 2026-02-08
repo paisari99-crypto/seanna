@@ -99,16 +99,19 @@ export default function DailyReview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#0F1115' }}>
+      <div className="min-h-screen animate-fadeIn" style={{ backgroundColor: '#0F1115' }}>
         <div className="p-6">
-          <p style={{ color: '#9AA3B2' }}>Loading...</p>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-2 h-2 rounded-full bg-[#C9A227] animate-pulse" />
+            <p style={{ color: '#9AA3B2' }}>Loading review...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-6" style={{ backgroundColor: '#0F1115' }}>
+    <div className="min-h-screen pb-6 animate-fadeIn" style={{ backgroundColor: '#0F1115' }}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -212,7 +215,7 @@ export default function DailyReview() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="w-full"
+            className="w-full transition-all hover:opacity-90"
             style={{
               backgroundColor: '#C9A227',
               color: '#0F1115',
