@@ -180,8 +180,21 @@ export default function Settings() {
       journalEntries = await ensureExternalIds(journalEntries, 'JournalEntry');
       decisions = await ensureExternalIds(decisions, 'Decision');
       
+      // Build habit id to externalId map
+      const habitIdToExtId = new Map(habits.map(h => [h.id, h.externalId]));
+      
+      // Transform logs to use habitExternalId instead of habitId
+      const transformedLogs = logs.map(log => ({
+        externalId: log.externalId,
+        habitExternalId: habitIdToExtId.get(log.habitId),
+        date: log.date,
+        status: log.status,
+        note: log.note,
+        created_date: log.created_date
+      }));
+      
       const backup = {
-        version: '2.0.0',
+        version: '1.1.0',
         exportDate: new Date().toISOString(),
         userProfile: {
           displayName: userProfile.displayName,
@@ -189,7 +202,7 @@ export default function Settings() {
           planTier: userProfile.planTier
         },
         habits,
-        habitLogs: logs,
+        habitLogs: transformedLogs,
         journalEntries,
         decisions
       };
