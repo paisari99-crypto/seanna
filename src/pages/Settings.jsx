@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { ChevronRight, ArrowLeft, Moon } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import ImportService from '../components/ImportService';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -331,58 +332,79 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error checking import receipt:', error);
+      toast.error('Failed to check import history');
     }
   };
 
   const generateImportReport = async (reportData) => {
     try {
+      const result = reportData?.result ?? {};
+      const preview = reportData?.preview ?? {};
+      
       const report = {
-        backupHash: reportData.backupHash,
-        fileName: reportData.fileName,
-        version: reportData.version,
+        backupHash: reportData?.backupHash ?? 'unknown',
+        fileName: reportData?.fileName ?? 'unknown',
+        version: reportData?.version ?? '1.0.0',
         importedAt: new Date().toISOString(),
         created: {
-          habits: reportData.result?.habits?.created || 0,
-          habitLogs: reportData.result?.habitLogs?.created || 0,
-          journalEntries: reportData.result?.journalEntries?.created || 0,
-          decisions: reportData.result?.decisions?.created || 0
+          habits: result.habits?.created ?? 0,
+          habitLogs: result.habitLogs?.created ?? 0,
+          journalEntries: result.journalEntries?.created ?? 0,
+          decisions: result.decisions?.created ?? 0
         },
         skipped: {
-          habits: reportData.result?.habits?.skipped || 0,
-          habitLogs: reportData.result?.habitLogs?.skipped || 0,
-          journalEntries: reportData.result?.journalEntries?.skipped || 0,
-          decisions: reportData.result?.decisions?.skipped || 0
+          habits: result.habits?.skipped ?? 0,
+          habitLogs: result.habitLogs?.skipped ?? 0,
+          journalEntries: result.journalEntries?.skipped ?? 0,
+          decisions: result.decisions?.skipped ?? 0
         },
         duplicates: [
-          ...(reportData.preview?.habits?.duplicates || []),
-          ...(reportData.preview?.habitLogs?.duplicates || []),
-          ...(reportData.preview?.journalEntries?.duplicates || []),
-          ...(reportData.preview?.decisions?.duplicates || [])
+          ...(Array.isArray(preview.habits?.duplicates) ? preview.habits.duplicates : []),
+          ...(Array.isArray(preview.habitLogs?.duplicates) ? preview.habitLogs.duplicates : []),
+          ...(Array.isArray(preview.journalEntries?.duplicates) ? preview.journalEntries.duplicates : []),
+          ...(Array.isArray(preview.decisions?.duplicates) ? preview.decisions.duplicates : [])
         ],
-        missingRefs: reportData.preview?.unmatchedHabitRefs || [],
-        missingHabitIds: Array.from(reportData.preview?.missingHabitIds || []),
-        warnings: reportData.preview?.warnings || [],
-        errors: reportData.result?.errors || []
+        missingRefs: Array.isArray(preview.unmatchedHabitRefs) ? preview.unmatchedHabitRefs : [],
+        missingHabitIds: Array.from(preview.missingHabitIds ?? []),
+        warnings: Array.isArray(preview.warnings) ? preview.warnings : [],
+        errors: Array.isArray(result.errors) ? result.errors : []
       };
       
       setImportReport(report);
       
-      // Save import receipt
-      await base44.entities.ImportReceipt.create({
-        userId: userProfile.id,
-        backupHash: reportData.backupHash,
-        fileName: reportData.fileName,
-        version: reportData.version,
-        importedAt: report.importedAt,
-        countsCreated: report.created,
-        countsSkipped: report.skipped,
-        warnings: report.warnings,
-        errors: report.errors.map(e => String(e))
-      });
+      // Save import receipt (wrapped in try/catch)
+      try {
+        await base44.entities.ImportReceipt.create({
+          userId: userProfile.id,
+          backupHash: report.backupHash,
+          fileName: report.fileName,
+          version: report.version,
+          importedAt: report.importedAt,
+          countsCreated: report.created,
+          countsSkipped: report.skipped,
+          warnings: report.warnings,
+          errors: report.errors.map(e => String(e))
+        });
+      } catch (receiptError) {
+        console.error('Failed to save import receipt:', receiptError);
+      }
       
       toast.success('Import complete');
     } catch (error) {
       console.error('Error generating import report:', error);
+      setImportReport({
+        backupHash: 'error',
+        fileName: 'error',
+        version: '1.0.0',
+        importedAt: new Date().toISOString(),
+        created: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
+        skipped: { habits: 0, habitLogs: 0, journalEntries: 0, decisions: 0 },
+        duplicates: [],
+        missingRefs: [],
+        missingHabitIds: [],
+        warnings: [],
+        errors: [error.message || 'Unknown error']
+      });
       toast.error('Import completed but report generation failed');
     }
   };
@@ -482,8 +504,9 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
-      <div className="p-6">
+    <ErrorBoundary>
+      <div className="min-h-screen pb-20" style={{ backgroundColor: '#0F1115' }}>
+        <div className="p-6">
         <button
           onClick={() => navigate(-1)}
           className="mb-4 p-2"
@@ -688,65 +711,82 @@ export default function Settings() {
                 </p>
               )}
               
-              {importReport && (
-                <div className="mt-4 p-4" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
-                      Import Report
-                    </h3>
-                    <button
-                      onClick={downloadImportReport}
-                      className="flex items-center gap-1 text-xs"
-                      style={{ color: '#9AA3B2' }}
-                    >
-                      <Download size={14} />
-                      Download JSON
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Created</p>
-                      <div className="space-y-1" style={{ color: '#9AA3B2' }}>
-                        <p>Habits: {importReport.created.habits}</p>
-                        <p>Habit logs: {importReport.created.habitLogs}</p>
-                        <p>Journal entries: {importReport.created.journalEntries}</p>
-                        <p>Decisions: {importReport.created.decisions}</p>
-                      </div>
+              {importReport && (() => {
+                const report = importReport ?? {};
+                const created = report.created ?? {};
+                const skipped = report.skipped ?? {};
+                const warnings = Array.isArray(report.warnings) ? report.warnings : [];
+                const errors = Array.isArray(report.errors) ? report.errors : [];
+                
+                return (
+                  <div className="mt-4 p-4" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                        Import Report
+                      </h3>
+                      <button
+                        onClick={downloadImportReport}
+                        className="flex items-center gap-1 text-xs"
+                        style={{ color: '#9AA3B2' }}
+                      >
+                        <Download size={14} />
+                        Download JSON
+                      </button>
                     </div>
                     
-                    {(importReport.skipped.habits + importReport.skipped.habitLogs + importReport.skipped.journalEntries + importReport.skipped.decisions) > 0 && (
+                    <div className="space-y-3 text-xs">
                       <div>
-                        <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Skipped (duplicates)</p>
+                        <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Created</p>
                         <div className="space-y-1" style={{ color: '#9AA3B2' }}>
-                          {importReport.skipped.habits > 0 && <p>Habits: {importReport.skipped.habits}</p>}
-                          {importReport.skipped.habitLogs > 0 && <p>Habit logs: {importReport.skipped.habitLogs}</p>}
-                          {importReport.skipped.journalEntries > 0 && <p>Journal entries: {importReport.skipped.journalEntries}</p>}
-                          {importReport.skipped.decisions > 0 && <p>Decisions: {importReport.skipped.decisions}</p>}
+                          <p>Habits: {created.habits ?? 0}</p>
+                          <p>Habit logs: {created.habitLogs ?? 0}</p>
+                          <p>Journal entries: {created.journalEntries ?? 0}</p>
+                          <p>Decisions: {created.decisions ?? 0}</p>
                         </div>
                       </div>
-                    )}
-                    
-                    {importReport.warnings.length > 0 && (
-                      <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px' }}>
-                        <p className="mb-1" style={{ color: '#C9A227', fontWeight: 600 }}>Warnings</p>
-                        {importReport.warnings.map((warning, i) => (
-                          <p key={i} style={{ color: '#9AA3B2' }}>• {warning}</p>
-                        ))}
+                      
+                      {((skipped.habits ?? 0) + (skipped.habitLogs ?? 0) + (skipped.journalEntries ?? 0) + (skipped.decisions ?? 0)) > 0 && (
+                        <div>
+                          <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Skipped (duplicates)</p>
+                          <div className="space-y-1" style={{ color: '#9AA3B2' }}>
+                            {(skipped.habits ?? 0) > 0 && <p>Habits: {skipped.habits}</p>}
+                            {(skipped.habitLogs ?? 0) > 0 && <p>Habit logs: {skipped.habitLogs}</p>}
+                            {(skipped.journalEntries ?? 0) > 0 && <p>Journal entries: {skipped.journalEntries}</p>}
+                            {(skipped.decisions ?? 0) > 0 && <p>Decisions: {skipped.decisions}</p>}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {warnings.length > 0 && (
+                        <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px' }}>
+                          <p className="mb-1" style={{ color: '#C9A227', fontWeight: 600 }}>Warnings</p>
+                          {warnings.map((warning, i) => (
+                            <p key={i} style={{ color: '#9AA3B2' }}>• {warning}</p>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {errors.length > 0 && (
+                        <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px', border: '1px solid #ff6b6b' }}>
+                          <p className="mb-1" style={{ color: '#ff6b6b', fontWeight: 600 }}>Errors</p>
+                          {errors.map((error, i) => (
+                            <p key={i} style={{ color: '#9AA3B2' }}>• {String(error)}</p>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="pt-2" style={{ borderTop: '1px solid #1A1D24' }}>
+                        <p style={{ color: '#9AA3B2', fontSize: '10px' }}>
+                          Imported: {report.importedAt ? new Date(report.importedAt).toLocaleString() : 'Unknown'}
+                        </p>
+                        <p style={{ color: '#9AA3B2', fontSize: '10px', opacity: 0.7 }}>
+                          Hash: {report.backupHash?.substring(0, 12) ?? 'unknown'}...
+                        </p>
                       </div>
-                    )}
-                    
-                    <div className="pt-2" style={{ borderTop: '1px solid #1A1D24' }}>
-                      <p style={{ color: '#9AA3B2', fontSize: '10px' }}>
-                        Imported: {new Date(importReport.importedAt).toLocaleString()}
-                      </p>
-                      <p style={{ color: '#9AA3B2', fontSize: '10px', opacity: 0.7 }}>
-                        Hash: {importReport.backupHash?.substring(0, 12)}...
-                      </p>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Card 3: Delete my data */}
@@ -1134,7 +1174,8 @@ export default function Settings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <BottomNav />
-    </div>
+        <BottomNav />
+      </div>
+    </ErrorBoundary>
   );
 }

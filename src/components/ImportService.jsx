@@ -594,7 +594,13 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
 
       results.decisions.skipped = Array.isArray(preview.decisions.skip) ? preview.decisions.skip.length : 0;
 
-      return results;
+      return {
+        ok: true,
+        habits: results.habits,
+        habitLogs: results.habitLogs,
+        journalEntries: results.journalEntries,
+        decisions: results.decisions
+      };
     } catch (error) {
       // Rollback: delete all created records
       console.error('Import failed, rolling back...', error);
@@ -631,7 +637,13 @@ export default function ImportService({ userProfile, onComplete, onReportGenerat
         console.error('Rollback failed:', rollbackError);
       }
       
-      throw new Error('Import failed. No data was changed.');
+      return {
+        ok: false,
+        habits: { created: 0, skipped: 0, errors: [error.message] },
+        habitLogs: { created: 0, skipped: 0, errors: [] },
+        journalEntries: { created: 0, skipped: 0, errors: [] },
+        decisions: { created: 0, skipped: 0, errors: [] }
+      };
     }
   };
 
