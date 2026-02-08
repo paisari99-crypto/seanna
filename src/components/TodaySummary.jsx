@@ -15,25 +15,25 @@ export default function TodaySummary({ totalHabits, completedToday, tomorrowHabi
     <div
       className="p-6 mb-6"
       style={{
-        backgroundColor: '#1A1D24',
+        backgroundColor: 'var(--surface)',
         borderRadius: '18px'
       }}
     >
-      <h3 className="text-lg font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+      <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
         Today
       </h3>
-      <p className="text-sm mb-2" style={{ color: '#9AA3B2' }}>
+      <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
         {allCompleted 
           ? 'All habits completed today.'
           : `You completed ${completedToday} of ${totalHabits} habit${totalHabits !== 1 ? 's' : ''} today.`}
       </p>
-      <p className="text-xs mb-4" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+      <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
         {tomorrowHabits === totalHabits 
           ? 'Tomorrow: Same system continues'
           : `Tomorrow: ${tomorrowHabits} habit${tomorrowHabits !== 1 ? 's' : ''} scheduled`}
       </p>
       {totalHabits > 7 && (
-        <p className="text-xs mb-4" style={{ color: '#9AA3B2', opacity: 0.7 }}>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
           Many active habits. Focus on your essentials.
         </p>
       )}
@@ -42,8 +42,8 @@ export default function TodaySummary({ totalHabits, completedToday, tomorrowHabi
           onClick={() => navigate(createPageUrl('Habits'))}
           className="px-4 py-2 font-semibold"
           style={{
-            backgroundColor: '#C9A227',
-            color: '#0F1115',
+            backgroundColor: 'var(--primary)',
+            color: 'var(--primary-foreground)',
             borderRadius: '18px'
           }}
         >

@@ -19,24 +19,24 @@ export default function GuidanceCard({ habitCount, hasLoggedToday, justCompleted
       <CardWrapper
         className="p-6 mb-6"
         style={{
-          backgroundColor: '#1A1D24',
+          backgroundColor: 'var(--surface)',
           borderRadius: '18px',
-          border: '2px solid rgba(201, 162, 39, 0.3)'
+          border: '2px solid var(--border)'
         }}
         {...animationProps}
       >
-        <h3 className="text-xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+        <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
           System active
         </h3>
-        <p className="text-sm mb-4" style={{ color: '#9AA3B2' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           You completed progress today.
         </p>
         <button
           onClick={() => navigate(createPageUrl('Insights'))}
           className="px-4 py-2 font-semibold"
           style={{
-            backgroundColor: '#C9A227',
-            color: '#0F1115',
+            backgroundColor: 'var(--primary)',
+            color: 'var(--primary-foreground)',
             borderRadius: '18px'
           }}
         >
@@ -56,23 +56,23 @@ export default function GuidanceCard({ habitCount, hasLoggedToday, justCompleted
     <div
       className="p-6 mb-6"
       style={{
-        backgroundColor: '#1A1D24',
+        backgroundColor: 'var(--surface)',
         borderRadius: '18px',
-        border: '2px solid rgba(201, 162, 39, 0.2)'
+        border: '2px solid var(--border)'
       }}
     >
-      <h3 className="text-xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+      <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
         Start your first system
       </h3>
-      <p className="text-sm mb-4" style={{ color: '#9AA3B2' }}>
+      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
         Build one small habit to see how Seanna works.
       </p>
       <button
         onClick={() => navigate(`${createPageUrl('HabitNew')}?onboarding=true`)}
         className="px-4 py-2 font-semibold"
         style={{
-          backgroundColor: '#C9A227',
-          color: '#0F1115',
+          backgroundColor: 'var(--primary)',
+          color: 'var(--primary-foreground)',
           borderRadius: '18px'
         }}
       >

@@ -313,17 +313,17 @@ export default function Home() {
         <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '24px' }}>
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-semibold mb-2" style={{ color: '#E8EAF0' }}>
+            <h1 className="text-4xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
               Seanna
             </h1>
-            <p className="text-lg" style={{ color: '#9AA3B2' }}>
+            <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
               Your cognitive toolkit
             </p>
           </div>
           <button
             onClick={() => navigate(createPageUrl('Settings'))}
             className="p-2"
-            style={{ color: '#9AA3B2' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             <Settings size={24} />
           </button>
@@ -335,16 +335,16 @@ export default function Home() {
           <div 
             className="mb-3 p-4 flex items-start justify-between gap-3"
             style={{
-              backgroundColor: '#1A1D24',
+              backgroundColor: 'var(--surface)',
               borderRadius: '18px',
-              border: '1px solid rgba(202, 162, 39, 0.2)'
+              border: '1px solid var(--border)'
             }}
           >
             <div className="flex-1">
-              <p className="text-sm font-semibold mb-1" style={{ color: '#C9A227' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--primary)' }}>
                 Backup recommended
               </p>
-              <p className="text-xs mb-3" style={{ color: '#9AA3B2' }}>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
                 Last backup: {userProfile?.lastBackupAt 
                   ? new Date(userProfile.lastBackupAt).toLocaleDateString('en-US', { 
                       month: 'short', 
@@ -358,8 +358,8 @@ export default function Home() {
                   disabled={backupExporting}
                   className="px-3 py-1.5 text-xs font-semibold"
                   style={{
-                    backgroundColor: '#C9A227',
-                    color: '#0F1115',
+                    backgroundColor: 'var(--primary)',
+                    color: 'var(--primary-foreground)',
                     borderRadius: '12px',
                     opacity: backupExporting ? 0.5 : 1
                   }}
@@ -371,7 +371,7 @@ export default function Home() {
                   disabled={backupExporting}
                   className="px-3 py-1.5 text-xs"
                   style={{
-                    color: '#9AA3B2',
+                    color: 'var(--text-secondary)',
                     opacity: backupExporting ? 0.5 : 1
                   }}
                 >
@@ -405,23 +405,23 @@ export default function Home() {
           onClick={() => navigate(createPageUrl('DailyReview'))}
           className="w-full p-4 flex items-center justify-between mb-3"
           style={{
-            backgroundColor: '#1A1D24',
+            backgroundColor: 'var(--surface)',
             borderRadius: '18px',
-            border: '1px solid rgba(202, 162, 39, 0.2)'
+            border: '1px solid var(--border)'
           }}
         >
           <div className="flex items-center gap-3">
-            <FileText size={24} style={{ color: '#C9A227' }} />
+            <FileText size={24} style={{ color: 'var(--primary)' }} />
             <div className="text-left">
-              <p className="font-semibold" style={{ color: '#E8EAF0' }}>
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {todayReviewExists ? "Edit today's review" : 'Daily review'}
               </p>
-              <p className="text-xs" style={{ color: '#9AA3B2' }}>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Reflect on your day
               </p>
             </div>
           </div>
-          <ChevronRight size={20} style={{ color: '#9AA3B2' }} />
+          <ChevronRight size={20} style={{ color: 'var(--text-secondary)' }} />
         </button>
 
         <div className="grid grid-cols-2 gap-3">
@@ -437,15 +437,15 @@ export default function Home() {
                 <div
                   className="p-4 shadow-lg"
                   style={{
-                    backgroundColor: '#1A1D24',
+                    backgroundColor: 'var(--surface)',
                     borderRadius: '18px'
                   }}
                 >
-                  <Icon size={32} className="mb-3" style={{ color: '#C9A227' }} />
-                  <h3 className="text-lg font-semibold mb-1" style={{ color: '#E8EAF0' }}>
+                  <Icon size={32} className="mb-3" style={{ color: 'var(--primary)' }} />
+                  <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
                     {card.title}
                   </h3>
-                  <p className="text-sm" style={{ color: '#9AA3B2' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                     {card.description}
                   </p>
                 </div>
