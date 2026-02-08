@@ -102,6 +102,15 @@ export default function ImportService({ userProfile, onComplete }) {
       const journalEntries = Array.isArray(sections.journalEntries) ? sections.journalEntries : [];
       const decisions = Array.isArray(sections.decisions) ? sections.decisions : [];
 
+      // Build habit ID to externalId mapping from backup
+      const habitIdToExternalId = new Map();
+      habits.forEach(h => {
+        if (h && h.id) {
+          const extId = h.externalId || generateExternalId();
+          habitIdToExternalId.set(h.id, extId);
+        }
+      });
+
       // Fetch existing records
       const existingHabits = await base44.entities.Habit.filter({ userId: currentUserId });
       const existingLogs = await base44.entities.HabitLog.filter({ userId: currentUserId });
@@ -180,21 +189,28 @@ export default function ImportService({ userProfile, onComplete }) {
         habitLogs: { create: [], skip: [] },
         journalEntries: { create: [], skip: [] },
         decisions: { create: [], skip: [] },
-        unmatchedHabitRefs: []
+        unmatchedHabitRefs: [],
+        missingHabitIds: new Set()
       };
 
-      // Track habit mappings for logs
-      const habitExtIdToMatched = new Map(); // externalId from backup -> existing habit
+      // Track habits that will exist after import (externalId -> true)
+      const habitsWillExist = new Set();
+      
+      // Add existing habits by externalId
+      existingHabitsByExtId.forEach((h, extId) => habitsWillExist.add(extId));
 
       // Process habits - prefer externalId, fallback to content key - defensive
       if (Array.isArray(habits)) {
         habits.forEach(habit => {
           if (!habit) return;
           
+          // Ensure habit has externalId
+          const extId = habit.externalId || habitIdToExternalId.get(habit.id) || generateExternalId();
+          
           let matchedHabit = null;
           
-          if (habit.externalId && existingHabitsByExtId.has(habit.externalId)) {
-            matchedHabit = existingHabitsByExtId.get(habit.externalId);
+          if (existingHabitsByExtId.has(extId)) {
+            matchedHabit = existingHabitsByExtId.get(extId);
           } else {
             const habitKey = computeHabitKey(habit);
             if (habitKey && existingHabitsByKey.has(habitKey)) {
@@ -204,12 +220,10 @@ export default function ImportService({ userProfile, onComplete }) {
           
           if (matchedHabit) {
             preview.habits.skip.push(habit);
-            // Track for log resolution
-            if (habit.externalId) {
-              habitExtIdToMatched.set(habit.externalId, matchedHabit);
-            }
+            habitsWillExist.add(extId);
           } else {
             preview.habits.create.push(habit);
+            habitsWillExist.add(extId);
           }
         });
       }
@@ -262,7 +276,7 @@ export default function ImportService({ userProfile, onComplete }) {
         });
       }
 
-      // Process habit logs - only create logs for habits that will exist (defensive)
+      // Process habit logs - strict validation and mapping
       const processedLogKeys = new Set();
       
       if (Array.isArray(habitLogs)) {
@@ -272,39 +286,35 @@ export default function ImportService({ userProfile, onComplete }) {
           }
           
           let habitExternalId;
+          let originalHabitId = null;
           
           // New format: log has habitExternalId directly
           if (isNewFormat && log.habitExternalId) {
             habitExternalId = log.habitExternalId;
           }
-          // Old format: resolve via habitId in backup
+          // Old format: resolve via habitId from backup mapping
           else if (log.habitId) {
-            const habitFromBackup = habits.find(h => h && h.id === log.habitId);
-            habitExternalId = habitFromBackup?.externalId;
-            
-            // If habit not in backup, check if it exists in user's account
-            if (!habitExternalId && Array.isArray(existingHabits)) {
-              const existingHabit = existingHabits.find(h => h && h.id === log.habitId);
-              habitExternalId = existingHabit?.externalId;
-            }
+            originalHabitId = log.habitId;
+            habitExternalId = habitIdToExternalId.get(log.habitId);
           }
           
           // Skip logs without a valid habitExternalId
           if (!habitExternalId) {
             preview.habitLogs.skip.push(log);
             preview.unmatchedHabitRefs.push(log);
+            if (originalHabitId) {
+              preview.missingHabitIds.add(originalHabitId);
+            }
             return;
           }
           
-          // Check if habit exists (either in backup to be created, or already exists)
-          const habitWillExist = 
-            (Array.isArray(habits) && habits.some(h => h && h.externalId === habitExternalId)) ||
-            existingHabitsByExtId.has(habitExternalId);
-            
-          // Skip logs that reference non-existent habits
-          if (!habitWillExist) {
+          // Check if habit will exist after import
+          if (!habitsWillExist.has(habitExternalId)) {
             preview.habitLogs.skip.push(log);
             preview.unmatchedHabitRefs.push(log);
+            if (originalHabitId) {
+              preview.missingHabitIds.add(originalHabitId);
+            }
             return;
           }
           
@@ -361,7 +371,17 @@ export default function ImportService({ userProfile, onComplete }) {
         });
       }
 
-      // Import habits (defensive)
+      // Build habit ID to externalId mapping from backup (for old format logs)
+      const habitIdToExternalId = new Map();
+      const backupHabits = Array.isArray(sections.habits) ? sections.habits : [];
+      backupHabits.forEach(h => {
+        if (h && h.id) {
+          const extId = h.externalId || generateExternalId();
+          habitIdToExternalId.set(h.id, extId);
+        }
+      });
+
+      // Import habits (defensive) - MUST BE FIRST
       const habitsToCreate = Array.isArray(preview.habits.create) ? preview.habits.create : [];
       
       for (const habit of habitsToCreate) {
@@ -372,9 +392,9 @@ export default function ImportService({ userProfile, onComplete }) {
           
           const { id, created_date, updated_date, created_by, userId, ...data } = habit;
           
-          // Generate externalId if not present (backward compatibility)
+          // Ensure externalId exists
           if (!data.externalId) {
-            data.externalId = generateExternalId();
+            data.externalId = habitIdToExternalId.get(id) || generateExternalId();
           }
           
           const newHabit = await base44.entities.Habit.create({
@@ -386,7 +406,7 @@ export default function ImportService({ userProfile, onComplete }) {
           if (newHabit && newHabit.id) {
             createdIds.habits.push(newHabit.id);
             
-            // Track mapping for logs
+            // Track mapping for logs (CRITICAL)
             if (newHabit.externalId) {
               habitExtIdToInternalId.set(newHabit.externalId, newHabit.id);
             }
@@ -401,7 +421,7 @@ export default function ImportService({ userProfile, onComplete }) {
 
       results.habits.skipped = Array.isArray(preview.habits.skip) ? preview.habits.skip.length : 0;
 
-      // Import habit logs - only create if habit reference can be resolved (defensive)
+      // Import habit logs - MUST BE AFTER HABITS (strict order)
       const logsToCreate = Array.isArray(preview.habitLogs.create) ? preview.habitLogs.create : [];
       
       for (const log of logsToCreate) {
@@ -417,21 +437,26 @@ export default function ImportService({ userProfile, onComplete }) {
             data.externalId = generateExternalId();
           }
           
-          // Resolve habit by externalId
+          // Resolve habit by externalId (strict mapping)
           let resolvedHabitExternalId;
           
           if (isNewFormat && habitExternalId) {
             resolvedHabitExternalId = habitExternalId;
           } else if (habitId) {
-            // Old format: lookup habit in backup
-            const backupHabits = Array.isArray(sections.habits) ? sections.habits : [];
-            const habitFromBackup = backupHabits.find(h => h && h.id === habitId);
-            resolvedHabitExternalId = habitFromBackup?.externalId;
+            // Use pre-built mapping from backup
+            resolvedHabitExternalId = habitIdToExternalId.get(habitId);
+          }
+          
+          // Must have a valid externalId
+          if (!resolvedHabitExternalId) {
+            console.warn('Skipping log: no habit externalId', { habitId, habitExternalId });
+            results.habitLogs.skipped++;
+            continue;
           }
           
           const actualHabitId = habitExtIdToInternalId.get(resolvedHabitExternalId);
           
-          // Skip logs that can't resolve habit (defensive check)
+          // Skip logs that can't resolve habit (should not happen if preview was correct)
           if (!actualHabitId) {
             console.warn('Skipping log: habit not found', resolvedHabitExternalId);
             results.habitLogs.skipped++;
@@ -718,8 +743,17 @@ export default function ImportService({ userProfile, onComplete }) {
           {importPreview.unmatchedHabitRefs?.length > 0 && (
             <div className="mt-3 p-2" style={{ backgroundColor: '#0F1115', borderRadius: '12px', border: '1px solid #C9A227' }}>
               <p className="text-xs font-semibold mb-1" style={{ color: '#C9A227' }}>Warning</p>
-              <p className="text-xs" style={{ color: '#9AA3B2' }}>
-                {importPreview.unmatchedHabitRefs.length} habit log{importPreview.unmatchedHabitRefs.length !== 1 ? 's' : ''} reference habits not found in this backup or your account. These will be skipped.
+              <p className="text-xs mb-2" style={{ color: '#9AA3B2' }}>
+                {importPreview.unmatchedHabitRefs.length} habit log{importPreview.unmatchedHabitRefs.length !== 1 ? 's' : ''} skipped because referenced habits are missing from backup.
+              </p>
+              {importPreview.missingHabitIds?.size > 0 && (
+                <p className="text-xs" style={{ color: '#9AA3B2', opacity: 0.8 }}>
+                  Missing habit IDs: {Array.from(importPreview.missingHabitIds).slice(0, 5).join(', ')}
+                  {importPreview.missingHabitIds.size > 5 ? ` (+${importPreview.missingHabitIds.size - 5} more)` : ''}
+                </p>
+              )}
+              <p className="text-xs mt-2" style={{ color: '#C9A227' }}>
+                Export a fresh backup from the source account to include all habits.
               </p>
             </div>
           )}

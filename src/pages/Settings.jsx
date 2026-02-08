@@ -168,7 +168,7 @@ export default function Settings() {
     setBackupExporting(true);
     setBackupMessage('');
     try {
-      // Fetch all user data
+      // Fetch all user data (including archived/inactive habits)
       let habits = await base44.entities.Habit.filter({ userId: userProfile.id });
       let logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
       let journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
@@ -183,15 +183,28 @@ export default function Settings() {
       // Build habit id to externalId map
       const habitIdToExtId = new Map(habits.map(h => [h.id, h.externalId]));
       
-      // Transform logs to use habitExternalId instead of habitId
-      const transformedLogs = logs.map(log => ({
-        externalId: log.externalId,
-        habitExternalId: habitIdToExtId.get(log.habitId),
-        date: log.date,
-        status: log.status,
-        note: log.note,
-        created_date: log.created_date
-      }));
+      // Find habit IDs referenced by logs
+      const referencedHabitIds = new Set(logs.map(log => log.habitId).filter(Boolean));
+      
+      // Validate: check if any logs reference missing habits
+      const exportWarnings = [];
+      const validLogs = [];
+      
+      logs.forEach(log => {
+        const habitExtId = habitIdToExtId.get(log.habitId);
+        if (!habitExtId) {
+          exportWarnings.push(`Log excluded: habit ID ${log.habitId} not found`);
+        } else {
+          validLogs.push({
+            externalId: log.externalId,
+            habitExternalId: habitExtId,
+            date: log.date,
+            status: log.status,
+            note: log.note,
+            created_date: log.created_date
+          });
+        }
+      });
       
       const backup = {
         version: '1.1.0',
@@ -202,9 +215,10 @@ export default function Settings() {
           planTier: userProfile.planTier
         },
         habits,
-        habitLogs: transformedLogs,
+        habitLogs: validLogs,
         journalEntries,
-        decisions
+        decisions,
+        ...(exportWarnings.length > 0 && { exportWarnings })
       };
       
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -217,7 +231,7 @@ export default function Settings() {
       URL.revokeObjectURL(url);
       a.remove();
       
-      setBackupMessage('Backup downloaded');
+      setBackupMessage(exportWarnings.length > 0 ? `Backup downloaded (${exportWarnings.length} warnings)` : 'Backup downloaded');
     } catch (error) {
       console.error('Error exporting data:', error);
       setBackupMessage('Export failed');
