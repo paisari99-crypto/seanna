@@ -20,6 +20,9 @@ export default function Home() {
   const [completedToday, setCompletedToday] = useState(0);
   const [thisWeekCount, setThisWeekCount] = useState(0);
   const [lastWeekCount, setLastWeekCount] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const [showBackupBanner, setShowBackupBanner] = useState(false);
+  const [backupExporting, setBackupExporting] = useState(false);
   
   // Check if just completed a habit
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,6 +41,21 @@ export default function Home() {
 
         const profile = userProfiles[0];
         const userId = profile.id;
+        setUserProfile(profile);
+        
+        // Check if backup banner should be shown
+        const dismissedUntil = localStorage.getItem('backup_banner_dismissed_until');
+        const now = new Date();
+        
+        if (dismissedUntil && new Date(dismissedUntil) > now) {
+          setShowBackupBanner(false);
+        } else if (!profile.lastBackupAt) {
+          setShowBackupBanner(true);
+        } else {
+          const lastBackup = new Date(profile.lastBackupAt);
+          const daysSinceBackup = (now - lastBackup) / (1000 * 60 * 60 * 24);
+          setShowBackupBanner(daysSinceBackup >= 7);
+        }
         
         // Check if user has any habits
         const habits = await base44.entities.Habit.filter({ userId });
@@ -104,6 +122,102 @@ export default function Home() {
 
     checkOnboarding();
   }, [navigate]);
+  
+  const handleDismissBanner = () => {
+    const dismissUntil = new Date();
+    dismissUntil.setHours(dismissUntil.getHours() + 24);
+    localStorage.setItem('backup_banner_dismissed_until', dismissUntil.toISOString());
+    setShowBackupBanner(false);
+  };
+  
+  const handleBackupFromBanner = async () => {
+    setBackupExporting(true);
+    try {
+      const generateExternalId = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+      
+      const ensureExternalIds = async (records, entityName) => {
+        const updates = [];
+        for (const record of records) {
+          if (!record.externalId) {
+            const externalId = generateExternalId();
+            updates.push(
+              base44.entities[entityName].update(record.id, { externalId })
+                .then(() => ({ ...record, externalId }))
+            );
+          } else {
+            updates.push(Promise.resolve(record));
+          }
+        }
+        return Promise.all(updates);
+      };
+      
+      let habits = await base44.entities.Habit.filter({ userId: userProfile.id });
+      let logs = await base44.entities.HabitLog.filter({ userId: userProfile.id });
+      let journalEntries = await base44.entities.JournalEntry.filter({ userId: userProfile.id });
+      let decisions = await base44.entities.Decision.filter({ userId: userProfile.id });
+      
+      habits = await ensureExternalIds(habits, 'Habit');
+      logs = await ensureExternalIds(logs, 'HabitLog');
+      journalEntries = await ensureExternalIds(journalEntries, 'JournalEntry');
+      decisions = await ensureExternalIds(decisions, 'Decision');
+      
+      const habitIdToExtId = new Map(habits.map(h => [h.id, h.externalId]));
+      const validLogs = [];
+      
+      logs.forEach(log => {
+        const habitExtId = habitIdToExtId.get(log.habitId);
+        if (habitExtId) {
+          validLogs.push({
+            externalId: log.externalId,
+            habitExternalId: habitExtId,
+            date: log.date,
+            status: log.status,
+            note: log.note,
+            created_date: log.created_date
+          });
+        }
+      });
+      
+      const backup = {
+        version: '1.1.0',
+        exportDate: new Date().toISOString(),
+        userProfile: {
+          displayName: userProfile.displayName,
+          timezone: userProfile.timezone,
+          planTier: userProfile.planTier
+        },
+        habits,
+        habitLogs: validLogs,
+        journalEntries,
+        decisions
+      };
+      
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `seanna-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      
+      const now = new Date().toISOString();
+      await base44.entities.UserProfile.update(userProfile.id, { lastBackupAt: now });
+      setUserProfile({ ...userProfile, lastBackupAt: now });
+      setShowBackupBanner(false);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    } finally {
+      setBackupExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -191,6 +305,57 @@ export default function Home() {
       </div>
 
       <div className="px-4 pb-8 animate-fadeIn">
+        {showBackupBanner && (
+          <div 
+            className="mb-3 p-4 flex items-start justify-between gap-3"
+            style={{
+              backgroundColor: '#1A1D24',
+              borderRadius: '18px',
+              border: '1px solid rgba(202, 162, 39, 0.2)'
+            }}
+          >
+            <div className="flex-1">
+              <p className="text-sm font-semibold mb-1" style={{ color: '#C9A227' }}>
+                Backup recommended
+              </p>
+              <p className="text-xs mb-3" style={{ color: '#9AA3B2' }}>
+                Last backup: {userProfile?.lastBackupAt 
+                  ? new Date(userProfile.lastBackupAt).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })
+                  : 'Never'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBackupFromBanner}
+                  disabled={backupExporting}
+                  className="px-3 py-1.5 text-xs font-semibold"
+                  style={{
+                    backgroundColor: '#C9A227',
+                    color: '#0F1115',
+                    borderRadius: '12px',
+                    opacity: backupExporting ? 0.5 : 1
+                  }}
+                >
+                  {backupExporting ? 'Downloading...' : 'Download backup'}
+                </button>
+                <button
+                  onClick={handleDismissBanner}
+                  disabled={backupExporting}
+                  className="px-3 py-1.5 text-xs"
+                  style={{
+                    color: '#9AA3B2',
+                    opacity: backupExporting ? 0.5 : 1
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <GuidanceCard 
           habitCount={habitCount} 
           hasLoggedToday={hasLoggedToday} 
