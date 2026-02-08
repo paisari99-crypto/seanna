@@ -42,6 +42,10 @@ export default function Settings() {
   const [backupExporting, setBackupExporting] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
   const [showImportService, setShowImportService] = useState(false);
+  const [showSafetyGateModal, setShowSafetyGateModal] = useState(false);
+  const [existingReceipt, setExistingReceipt] = useState(null);
+  const [pendingImportData, setPendingImportData] = useState(null);
+  const [importReport, setImportReport] = useState(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -303,10 +307,115 @@ export default function Settings() {
     }
   };
 
+  const handleImportReportGenerated = async (reportData) => {
+    try {
+      // Check if this backup was already imported
+      if (reportData.backupHash) {
+        const receipts = await base44.entities.ImportReceipt.filter({ 
+          userId: userProfile.id,
+          backupHash: reportData.backupHash
+        });
+        
+        if (receipts.length > 0) {
+          // Found existing import - show safety gate
+          setExistingReceipt(receipts[0]);
+          setPendingImportData(reportData);
+          setShowSafetyGateModal(true);
+          return;
+        }
+      }
+      
+      // If import result is available, generate report
+      if (reportData.result) {
+        await generateImportReport(reportData);
+      }
+    } catch (error) {
+      console.error('Error checking import receipt:', error);
+    }
+  };
+
+  const generateImportReport = async (reportData) => {
+    try {
+      const report = {
+        backupHash: reportData.backupHash,
+        fileName: reportData.fileName,
+        version: reportData.version,
+        importedAt: new Date().toISOString(),
+        created: {
+          habits: reportData.result?.habits?.created || 0,
+          habitLogs: reportData.result?.habitLogs?.created || 0,
+          journalEntries: reportData.result?.journalEntries?.created || 0,
+          decisions: reportData.result?.decisions?.created || 0
+        },
+        skipped: {
+          habits: reportData.result?.habits?.skipped || 0,
+          habitLogs: reportData.result?.habitLogs?.skipped || 0,
+          journalEntries: reportData.result?.journalEntries?.skipped || 0,
+          decisions: reportData.result?.decisions?.skipped || 0
+        },
+        duplicates: [
+          ...(reportData.preview?.habits?.duplicates || []),
+          ...(reportData.preview?.habitLogs?.duplicates || []),
+          ...(reportData.preview?.journalEntries?.duplicates || []),
+          ...(reportData.preview?.decisions?.duplicates || [])
+        ],
+        missingRefs: reportData.preview?.unmatchedHabitRefs || [],
+        missingHabitIds: Array.from(reportData.preview?.missingHabitIds || []),
+        warnings: reportData.preview?.warnings || [],
+        errors: reportData.result?.errors || []
+      };
+      
+      setImportReport(report);
+      
+      // Save import receipt
+      await base44.entities.ImportReceipt.create({
+        userId: userProfile.id,
+        backupHash: reportData.backupHash,
+        fileName: reportData.fileName,
+        version: reportData.version,
+        importedAt: report.importedAt,
+        countsCreated: report.created,
+        countsSkipped: report.skipped,
+        warnings: report.warnings,
+        errors: report.errors.map(e => String(e))
+      });
+      
+      toast.success('Import complete');
+    } catch (error) {
+      console.error('Error generating import report:', error);
+      toast.error('Import completed but report generation failed');
+    }
+  };
+
   const handleImportComplete = () => {
     setShowImportService(false);
-    setBackupMessage('Import completed successfully');
-    toast.success('Backup imported');
+    setShowSafetyGateModal(false);
+    setPendingImportData(null);
+  };
+
+  const handleSafetyGateCancel = () => {
+    setShowSafetyGateModal(false);
+    setPendingImportData(null);
+    setShowImportService(false);
+  };
+
+  const handleSafetyGateConfirm = () => {
+    setShowSafetyGateModal(false);
+    // Import will proceed in ImportService
+  };
+
+  const downloadImportReport = () => {
+    if (!importReport) return;
+    
+    const blob = new Blob([JSON.stringify(importReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seanna-import-report-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
   };
 
   const handleIsolationCheck = async () => {
@@ -549,7 +658,10 @@ export default function Settings() {
                 
                 {!showImportService ? (
                   <button
-                    onClick={() => setShowImportService(true)}
+                    onClick={() => {
+                      setShowImportService(true);
+                      setImportReport(null);
+                    }}
                     disabled={backupExporting}
                     className="w-full py-3 font-semibold"
                     style={{
@@ -565,6 +677,7 @@ export default function Settings() {
                   <ImportService 
                     userProfile={userProfile}
                     onComplete={handleImportComplete}
+                    onReportGenerated={handleImportReportGenerated}
                   />
                 )}
               </div>
@@ -573,6 +686,66 @@ export default function Settings() {
                 <p className="text-sm mt-3" style={{ color: backupMessage.includes('failed') ? '#E8EAF0' : '#C9A227' }}>
                   {backupMessage}
                 </p>
+              )}
+              
+              {importReport && (
+                <div className="mt-4 p-4" style={{ backgroundColor: '#0F1115', borderRadius: '12px' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold" style={{ color: '#C9A227' }}>
+                      Import Report
+                    </h3>
+                    <button
+                      onClick={downloadImportReport}
+                      className="flex items-center gap-1 text-xs"
+                      style={{ color: '#9AA3B2' }}
+                    >
+                      <Download size={14} />
+                      Download JSON
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Created</p>
+                      <div className="space-y-1" style={{ color: '#9AA3B2' }}>
+                        <p>Habits: {importReport.created.habits}</p>
+                        <p>Habit logs: {importReport.created.habitLogs}</p>
+                        <p>Journal entries: {importReport.created.journalEntries}</p>
+                        <p>Decisions: {importReport.created.decisions}</p>
+                      </div>
+                    </div>
+                    
+                    {(importReport.skipped.habits + importReport.skipped.habitLogs + importReport.skipped.journalEntries + importReport.skipped.decisions) > 0 && (
+                      <div>
+                        <p className="mb-2" style={{ color: '#E8EAF0', fontWeight: 600 }}>Skipped (duplicates)</p>
+                        <div className="space-y-1" style={{ color: '#9AA3B2' }}>
+                          {importReport.skipped.habits > 0 && <p>Habits: {importReport.skipped.habits}</p>}
+                          {importReport.skipped.habitLogs > 0 && <p>Habit logs: {importReport.skipped.habitLogs}</p>}
+                          {importReport.skipped.journalEntries > 0 && <p>Journal entries: {importReport.skipped.journalEntries}</p>}
+                          {importReport.skipped.decisions > 0 && <p>Decisions: {importReport.skipped.decisions}</p>}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {importReport.warnings.length > 0 && (
+                      <div className="p-2" style={{ backgroundColor: '#1A1D24', borderRadius: '8px' }}>
+                        <p className="mb-1" style={{ color: '#C9A227', fontWeight: 600 }}>Warnings</p>
+                        {importReport.warnings.map((warning, i) => (
+                          <p key={i} style={{ color: '#9AA3B2' }}>• {warning}</p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="pt-2" style={{ borderTop: '1px solid #1A1D24' }}>
+                      <p style={{ color: '#9AA3B2', fontSize: '10px' }}>
+                        Imported: {new Date(importReport.importedAt).toLocaleString()}
+                      </p>
+                      <p style={{ color: '#9AA3B2', fontSize: '10px', opacity: 0.7 }}>
+                        Hash: {importReport.backupHash?.substring(0, 12)}...
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -920,6 +1093,43 @@ export default function Settings() {
             >
               {deleting ? 'Processing...' : 'Continue'}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showSafetyGateModal} onOpenChange={setShowSafetyGateModal}>
+        <AlertDialogContent style={{ backgroundColor: '#1A1D24', borderColor: '#1A1D24' }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: '#C9A227' }}>Backup already imported</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: '#9AA3B2' }}>
+              This exact backup was imported on {existingReceipt ? new Date(existingReceipt.importedAt).toLocaleString() : 'previously'}.
+              <br /><br />
+              Importing again may create duplicates. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={handleSafetyGateCancel}
+              style={{ 
+                backgroundColor: '#C9A227', 
+                color: '#0F1115',
+                borderRadius: '18px',
+                fontWeight: 600
+              }}
+            >
+              Cancel
+            </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={handleSafetyGateConfirm}
+              style={{ 
+                backgroundColor: '#1A1D24', 
+                color: '#9AA3B2',
+                borderRadius: '18px',
+                border: '1px solid #2A2F3A'
+              }}
+            >
+              Import anyway
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

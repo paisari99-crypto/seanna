@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Info, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, Loader2, Download } from 'lucide-react';
 
-export default function ImportService({ userProfile, onComplete }) {
+export default function ImportService({ userProfile, onComplete, onReportGenerated }) {
   const [file, setFile] = useState(null);
-  const [stage, setStage] = useState('idle'); // idle, validating, preview, importing, complete
+  const [stage, setStage] = useState('idle'); // idle, validating, preview, importing, complete, error
   const [validationResult, setValidationResult] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState(null);
+  const [backupHash, setBackupHash] = useState(null);
 
   const generateExternalId = () => {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -17,6 +18,39 @@ export default function ImportService({ userProfile, onComplete }) {
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
+  };
+
+  const computeBackupHash = async (backupData) => {
+    try {
+      // Normalize backup for stable hash
+      const normalized = {
+        version: backupData.version,
+        habits: (backupData.habits || []).map(h => ({
+          externalId: h.externalId,
+          name: h.name,
+          description: h.description,
+          scheduleType: h.scheduleType
+        })).sort((a, b) => (a.externalId || '').localeCompare(b.externalId || '')),
+        habitLogs: (backupData.habitLogs || []).map(l => ({
+          externalId: l.externalId,
+          habitExternalId: l.habitExternalId,
+          date: l.date,
+          status: l.status
+        })).sort((a, b) => (a.externalId || '').localeCompare(b.externalId || '')),
+        journalEntries: (backupData.journalEntries || []).length,
+        decisions: (backupData.decisions || []).length
+      };
+      
+      const normalized_str = JSON.stringify(normalized);
+      const msgBuffer = new TextEncoder().encode(normalized_str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    } catch (err) {
+      console.error('Hash computation failed:', err);
+      return null;
+    }
   };
 
   const computeHabitKey = (habit) => {
@@ -185,12 +219,14 @@ export default function ImportService({ userProfile, onComplete }) {
       }
 
       const preview = {
-        habits: { create: [], skip: [] },
-        habitLogs: { create: [], skip: [] },
-        journalEntries: { create: [], skip: [] },
-        decisions: { create: [], skip: [] },
+        habits: { create: [], skip: [], duplicates: [] },
+        habitLogs: { create: [], skip: [], duplicates: [] },
+        journalEntries: { create: [], skip: [], duplicates: [] },
+        decisions: { create: [], skip: [], duplicates: [] },
         unmatchedHabitRefs: [],
-        missingHabitIds: new Set()
+        missingHabitIds: new Set(),
+        warnings: [],
+        errors: []
       };
 
       // Track habits that will exist after import (externalId -> true)
@@ -220,6 +256,7 @@ export default function ImportService({ userProfile, onComplete }) {
           
           if (matchedHabit) {
             preview.habits.skip.push(habit);
+            preview.habits.duplicates.push({ type: 'Habit', externalId: extId, name: habit.name });
             habitsWillExist.add(extId);
           } else {
             preview.habits.create.push(habit);
@@ -246,6 +283,7 @@ export default function ImportService({ userProfile, onComplete }) {
           
           if (isDuplicate) {
             preview.journalEntries.skip.push(entry);
+            preview.journalEntries.duplicates.push({ type: 'JournalEntry', externalId: entry.externalId, title: entry.title });
           } else {
             preview.journalEntries.create.push(entry);
           }
@@ -270,6 +308,7 @@ export default function ImportService({ userProfile, onComplete }) {
           
           if (isDuplicate) {
             preview.decisions.skip.push(decision);
+            preview.decisions.duplicates.push({ type: 'Decision', externalId: decision.externalId, title: decision.title });
           } else {
             preview.decisions.create.push(decision);
           }
@@ -328,11 +367,18 @@ export default function ImportService({ userProfile, onComplete }) {
           
           if (existingLogsByCompositeKey.has(logKey) || processedLogKeys.has(logKey)) {
             preview.habitLogs.skip.push(log);
+            preview.habitLogs.duplicates.push({ type: 'HabitLog', compositeKey: logKey, date: log.date });
           } else {
             preview.habitLogs.create.push(log);
             processedLogKeys.add(logKey);
           }
         });
+      }
+
+      // Generate warnings
+      if (preview.unmatchedHabitRefs.length > 0) {
+        const missingIds = Array.from(preview.missingHabitIds);
+        preview.warnings.push(`${preview.unmatchedHabitRefs.length} habit logs skipped due to missing habit references: ${missingIds.slice(0, 3).join(', ')}${missingIds.length > 3 ? ` (+${missingIds.length - 3} more)` : ''}`);
       }
 
       return preview;
@@ -601,6 +647,10 @@ export default function ImportService({ userProfile, onComplete }) {
       const text = await selectedFile.text();
       const backupData = JSON.parse(text);
 
+      // Compute backup hash
+      const hash = await computeBackupHash(backupData);
+      setBackupHash(hash);
+
       const validation = await validateBackup(backupData);
       setValidationResult(validation);
 
@@ -612,10 +662,22 @@ export default function ImportService({ userProfile, onComplete }) {
 
       const preview = await generateImportPreview(validation.sections, validation.isNewFormat);
       setImportPreview(preview);
+      
+      // Notify parent to check for existing import (Settings will handle safety gate)
+      if (onReportGenerated) {
+        onReportGenerated({
+          backupHash: hash,
+          fileName: selectedFile.name,
+          version: backupData.version,
+          preview
+        });
+      }
+      
       setStage('preview');
     } catch (err) {
+      console.error('File select error:', err);
       setError(err.message || 'Invalid backup file');
-      setStage('idle');
+      setStage('error');
     }
 
     event.target.value = '';
@@ -626,11 +688,23 @@ export default function ImportService({ userProfile, onComplete }) {
     try {
       const result = await executeImport(validationResult.sections, importPreview, validationResult.isNewFormat);
       setImportResult(result);
+      
+      // Notify parent with full import report
+      if (onReportGenerated) {
+        onReportGenerated({
+          backupHash,
+          fileName: file?.name,
+          version: validationResult.sections?.version || '1.0.0',
+          result,
+          preview: importPreview
+        });
+      }
+      
       setStage('complete');
     } catch (err) {
       console.error('Import error:', err);
       setError(err.message || 'Import failed. No data was changed.');
-      setStage('idle');
+      setStage('error');
     }
   };
 
@@ -641,6 +715,7 @@ export default function ImportService({ userProfile, onComplete }) {
     setImportPreview(null);
     setImportResult(null);
     setError(null);
+    setBackupHash(null);
   };
 
   const handleClose = () => {
@@ -650,32 +725,58 @@ export default function ImportService({ userProfile, onComplete }) {
 
   if (stage === 'idle') {
     return (
-      <div>
-        <label
-          className="w-full py-3 font-semibold block text-center cursor-pointer"
-          style={{
-            backgroundColor: '#C9A227',
-            color: '#0F1115',
-            borderRadius: '18px'
-          }}
-        >
-          Import backup
-          <input
-            type="file"
-            accept=".json"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </label>
-        {error && (
-          <div className="mt-3 p-3 flex gap-2" style={{ backgroundColor: '#1A1D24', borderRadius: '12px' }}>
-            <AlertCircle size={16} style={{ color: '#ff6b6b', marginTop: '2px' }} />
-            <p className="text-sm" style={{ color: '#ff6b6b' }}>{error}</p>
-          </div>
-        )}
-      </div>
+    <div>
+      <label
+        className="w-full py-3 font-semibold block text-center cursor-pointer"
+        style={{
+          backgroundColor: '#C9A227',
+          color: '#0F1115',
+          borderRadius: '18px'
+        }}
+      >
+        Import backup
+        <input
+          type="file"
+          accept=".json"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </label>
+      {error && (
+        <div className="mt-3 p-3 flex gap-2" style={{ backgroundColor: '#1A1D24', borderRadius: '12px' }}>
+          <AlertCircle size={16} style={{ color: '#ff6b6b', marginTop: '2px' }} />
+          <p className="text-sm" style={{ color: '#ff6b6b' }}>{error}</p>
+        </div>
+      )}
+    </div>
     );
-  }
+    }
+
+    if (stage === 'error') {
+    return (
+    <div className="space-y-3">
+      <div className="p-4 flex gap-3" style={{ backgroundColor: '#1A1D24', borderRadius: '18px' }}>
+        <AlertCircle size={20} style={{ color: '#ff6b6b', marginTop: '2px' }} />
+        <div>
+          <p className="text-sm font-semibold mb-2" style={{ color: '#ff6b6b' }}>Import Failed</p>
+          <p className="text-xs" style={{ color: '#9AA3B2' }}>{error}</p>
+        </div>
+      </div>
+      <Button
+        onClick={handleCancel}
+        className="w-full"
+        style={{
+          backgroundColor: '#C9A227',
+          color: '#0F1115',
+          borderRadius: '18px',
+          fontWeight: 600
+        }}
+      >
+        Try again
+      </Button>
+    </div>
+    );
+    }
 
   if (stage === 'validating') {
     return (
