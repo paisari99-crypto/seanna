@@ -44,6 +44,13 @@ css
     @apply border-border;
   }
   
+  /* Ensure native gestures and text selection work */
+  body, #root {
+    touch-action: auto;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  
   body {
     @apply bg-[#0F1115] text-[#E8EAF0];
     font-family: system-ui, -apple-system, sans-serif;
