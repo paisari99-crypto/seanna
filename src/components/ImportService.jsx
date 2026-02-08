@@ -211,7 +211,7 @@ export default function ImportService({ userProfile, onComplete }) {
       }
     });
 
-    // Process habit logs
+    // Process habit logs - only create logs for habits that will exist
     const processedLogKeys = new Set();
     
     sections.habitLogs.forEach(log => {
@@ -233,6 +233,7 @@ export default function ImportService({ userProfile, onComplete }) {
         }
       }
       
+      // Skip logs without a valid habitExternalId
       if (!habitExternalId) {
         preview.habitLogs.skip.push(log);
         preview.unmatchedHabitRefs.push(log);
@@ -244,6 +245,7 @@ export default function ImportService({ userProfile, onComplete }) {
         sections.habits.some(h => h.externalId === habitExternalId) ||
         existingHabitsByExtId.has(habitExternalId);
         
+      // Skip logs that reference non-existent habits
       if (!habitWillExist) {
         preview.habitLogs.skip.push(log);
         preview.unmatchedHabitRefs.push(log);
@@ -321,7 +323,7 @@ export default function ImportService({ userProfile, onComplete }) {
 
       results.habits.skipped = preview.habits.skip.length;
 
-      // Import habit logs
+      // Import habit logs - only create if habit reference can be resolved
       for (const log of preview.habitLogs.create) {
         try {
           const { id, created_date, updated_date, created_by, userId, habitId, habitExternalId, ...data } = log;
@@ -344,8 +346,11 @@ export default function ImportService({ userProfile, onComplete }) {
           
           const actualHabitId = habitExtIdToInternalId.get(resolvedHabitExternalId);
           
+          // Skip logs that can't resolve habit (defensive check)
           if (!actualHabitId) {
-            throw new Error('Habit not found for log');
+            console.warn('Skipping log: habit not found', resolvedHabitExternalId);
+            results.habitLogs.skipped++;
+            continue;
           }
           
           const newLog = await base44.entities.HabitLog.create({

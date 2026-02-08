@@ -51,7 +51,14 @@ export default function Home() {
         // Check if user has logged any habit today (only active habits)
         const today = getUserToday(profile);
         const todayLogs = await base44.entities.HabitLog.filter({ userId, date: today });
-        const activeTodayLogs = todayLogs.filter(log => activeHabitIds.includes(log.habitId));
+        // Defensive: filter logs that reference existing habits only
+        const activeTodayLogs = todayLogs.filter(log => {
+          const habitExists = activeHabitIds.includes(log.habitId);
+          if (!habitExists) {
+            console.warn(`Log references missing habit: ${log.habitId}`);
+          }
+          return habitExists;
+        });
         setHasLoggedToday(activeTodayLogs.length > 0);
 
         // Count completed habits today (only active habits)
@@ -66,7 +73,14 @@ export default function Home() {
         const nextMondayStr = format(nextMondayDate, 'yyyy-MM-dd');
 
         const thisWeekLogs = await base44.entities.HabitLog.filter({ userId });
-        const activeThisWeekLogs = thisWeekLogs.filter(log => activeHabitIds.includes(log.habitId));
+        // Defensive: filter logs that reference existing habits only
+        const activeThisWeekLogs = thisWeekLogs.filter(log => {
+          const habitExists = activeHabitIds.includes(log.habitId);
+          if (!habitExists) {
+            console.warn(`Log references missing habit: ${log.habitId}`);
+          }
+          return habitExists;
+        });
         const thisWeekCompleted = activeThisWeekLogs.filter(log => 
           log.date >= startOfWeekStr && log.date < nextMondayStr && log.status === 'done'
         ).length;

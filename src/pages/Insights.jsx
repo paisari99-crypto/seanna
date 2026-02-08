@@ -146,7 +146,7 @@ export default function Insights() {
 
       const habitLogsData = recentHabitLogs.map(log => ({
         date: log.date,
-        habitName: habitMap[log.habitId] || 'Unknown habit',
+        habitName: habitMap[log.habitId] || 'Unknown habit (import mismatch)',
         status: log.status
       }));
 
