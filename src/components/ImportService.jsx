@@ -175,16 +175,16 @@ export default function ImportService({ userProfile, onComplete }) {
         });
       }
 
-    const preview = {
-      habits: { create: [], skip: [] },
-      habitLogs: { create: [], skip: [] },
-      journalEntries: { create: [], skip: [] },
-      decisions: { create: [], skip: [] },
-      unmatchedHabitRefs: []
-    };
+      const preview = {
+        habits: { create: [], skip: [] },
+        habitLogs: { create: [], skip: [] },
+        journalEntries: { create: [], skip: [] },
+        decisions: { create: [], skip: [] },
+        unmatchedHabitRefs: []
+      };
 
-    // Track habit mappings for logs
-    const habitExtIdToMatched = new Map(); // externalId from backup -> existing habit
+      // Track habit mappings for logs
+      const habitExtIdToMatched = new Map(); // externalId from backup -> existing habit
 
       // Process habits - prefer externalId, fallback to content key - defensive
       if (Array.isArray(habits)) {
