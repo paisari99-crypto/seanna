@@ -71,10 +71,6 @@ import JournalNew from './pages/JournalNew';
 import Onboarding from './pages/Onboarding';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
-import Landing from './pages/Landing';
-import Features from './pages/Features';
-import Pricing from './pages/Pricing';
-import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -102,13 +98,9 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Privacy": Privacy,
     "Settings": Settings,
-    "Landing": Landing,
-    "Features": Features,
-    "Pricing": Pricing,
 }
 
 export const pagesConfig = {
     mainPage: "Home",
     Pages: PAGES,
-    Layout: __Layout,
 };
