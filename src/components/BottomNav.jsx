@@ -7,7 +7,7 @@ export default function BottomNav() {
   const location = useLocation();
   
   const tabs = [
-    { id: 'home', label: 'Home', icon: Home, page: 'Home' },
+    { id: 'home', label: 'Home', icon: Home, page: 'App' },
     { id: 'journal', label: 'Journal', icon: BookOpen, page: 'Journal' },
     { id: 'habits', label: 'Habits', icon: Target, page: 'Habits' },
     { id: 'decisions', label: 'Decisions', icon: GitBranch, page: 'Decisions' },

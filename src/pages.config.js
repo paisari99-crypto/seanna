@@ -74,6 +74,7 @@ import Settings from './pages/Settings';
 import Landing from './pages/Landing';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
+import App from './pages/App';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +106,7 @@ export const PAGES = {
     "Landing": Landing,
     "Features": Features,
     "Pricing": Pricing,
+    "App": App,
 }
 
 export const pagesConfig = {
