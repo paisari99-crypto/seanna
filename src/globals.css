@@ -4,76 +4,28 @@ css
 @tailwind utilities;
 
 @layer base {
-  /*
-    The theme variable definitions are updated according to the outline.
-    A single `:root` block now defines the default (dark) theme and includes
-    all general layout/spacing variables (like safe-area-left/right, spacing, radius)
-    which were present in the original file and not explicitly modified or removed
-    by the outline's theme-specific variable blocks.
-    
-    The outline's explicit `:root[data-theme="dark"]` block is omitted because
-    it is redundant; the main `:root` already sets the dark theme as default.
-  */
-  
   :root {
-    /* Default dark theme variables - merged from original default and outline's final :root */
-    --background: #0F1115;
+    /* Theme variables from outline */
+    --bg: #0F1115;
     --surface: #1A1D24;
-    --border: #2A2F3A; /* Updated border color from outline */
+    --border: #2A2F3A;
+    --accent: #C9A227;
+    --text: #E8EAF0;
+    --muted: #9AA3B2;
     --primary: #C9A227;
     --primary-foreground: #0F1115;
-    --text-primary: #E8EAF0;
-    --text-secondary: #9AA3B2;
-    --safe-area-top: env(safe-area-inset-top); /* Explicitly set in outline's default :root */
-    --safe-area-bottom: env(safe-area-inset-bottom); /* Explicitly set in outline's default :root */
+    --text-primary: #E8EAF0; /* Redundant with --text but kept as per outline */
+    --text-secondary: #9AA3B2; /* Redundant with --muted but kept as per outline */
+    --background: #0F1115; /* Redundant with --bg but kept as per outline */
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
     
-    /* Other essential non-theme-specific variables preserved from original code */
+    /* General layout variables preserved from original file, not conflicting with outline */
     --safe-area-left: env(safe-area-inset-left); 
     --safe-area-right: env(safe-area-inset-right);
     --spacing-default: 16px;
     --spacing-card: 12px;
     --radius: 18px;
-    
-    /* Shadcn UI compatibility variables - Preserved from original,
-       as their removal was not explicitly indicated for the default theme. */
-    --card: #1A1D24;
-    --card-foreground: #E8EAF0;
-    --popover: #1A1D24;
-    --popover-foreground: #E8EAF0;
-    --muted: #9AA3B2;
-    --muted-foreground: #9AA3B2;
-    --accent: #C9A227;
-    --accent-foreground: #0F1115;
-    --input: #1A1D24;
-    --ring: #C9A227;
-    --foreground: #E8EAF0;
-  }
-  
-  /* Light theme - only when explicitly set, as per outline.
-     This block overrides only theme-specific variables. */
-  :root[data-theme="light"] {
-    --background: #FFFFFF;
-    --surface: #F5F5F5;
-    --border: #E0E0E0; /* Updated border color from outline */
-    --primary: #C9A227;
-    --primary-foreground: #FFFFFF;
-    --text-primary: #1A1D24; /* Updated text primary color from outline */
-    --text-secondary: #6B7280;
-    --safe-area-top: env(safe-area-inset-top); /* Explicitly set in outline's light theme :root */
-    --safe-area-bottom: env(safe-area-inset-bottom); /* Explicitly set in outline's light theme :root */
-    
-    /* Shadcn UI compatibility for light theme - Preserved from original. */
-    --card: #F5F5F5;
-    --card-foreground: #111827;
-    --popover: #FFFFFF;
-    --popover-foreground: #111827;
-    --muted: #6B7280;
-    --muted-foreground: #6B7280;
-    --accent: #C9A227;
-    --accent-foreground: #FFFFFF;
-    --input: #F5F5F5;
-    --ring: #C9A227;
-    --foreground: #111827;
   }
   
   * {
@@ -85,6 +37,29 @@ css
     -webkit-tap-highlight-color: transparent;
   }
   
+  html, body {
+    height: 100%;
+    min-height: 100%;
+    background: var(--bg) !important;
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #root {
+    height: 100%;
+    min-height: 100%;
+    background: var(--bg);
+    /* Original padding values removed as per outline's #root definition */
+  }
+
+  /* Interaction properties preserved from original, as outline did not explicitly remove */
   body, #root {
     touch-action: auto;
     user-select: text;
@@ -98,27 +73,7 @@ css
     -webkit-user-select: none;
   }
   
-  html {
-    background-color: var(--background);
-  }
-  
-  body {
-    background-color: var(--background);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, sans-serif;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-  
-  #root {
-    min-height: 100vh;
-    padding-top: var(--safe-area-top);
-    padding-left: var(--safe-area-left);
-    padding-right: var(--safe-area-right);
-  }
-  
+  /* Original default text colors, preserved */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     color: var(--text-primary);
@@ -128,7 +83,7 @@ css
     color: var(--text-primary);
   }
   
-  /* Ensure proper text selection styling */
+  /* Ensure proper text selection styling, preserved */
   ::selection {
     background-color: var(--primary);
     color: var(--background);
@@ -168,13 +123,13 @@ css
   }
 }
 
-/* Updated keyframe animation from outline */
+/* Keyframe animation from outline (identical to original) */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-/* Updated keyframe animation from outline */
+/* Keyframe animation from outline (identical to original) */
 @keyframes slideUp {
   from { 
     opacity: 0;
@@ -196,7 +151,7 @@ css
   }
 }
 
-/* Updated animation utility classes from outline */
+/* Animation utility classes from outline (identical to original) */
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-in;
 }
