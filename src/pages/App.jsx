@@ -35,6 +35,13 @@ export default function App() {
 
   const loadData = async () => {
     try {
+      // Check authentication first
+      const isAuth = await base44.auth.isAuthenticated();
+      if (!isAuth) {
+        base44.auth.redirectToLogin('/app');
+        return;
+      }
+      
       const currentUser = await base44.auth.me();
         const userProfiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
 

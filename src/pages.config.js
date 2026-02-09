@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import About from './pages/About';
+import App from './pages/App';
 import ArchivedHabits from './pages/ArchivedHabits';
 import DailyReview from './pages/DailyReview';
 import DailyReviewHistory from './pages/DailyReviewHistory';
@@ -59,6 +60,7 @@ import DecisionOptionDetail from './pages/DecisionOptionDetail';
 import DecisionOptionNew from './pages/DecisionOptionNew';
 import Decisions from './pages/Decisions';
 import Disclaimer from './pages/Disclaimer';
+import Features from './pages/Features';
 import HabitDetail from './pages/HabitDetail';
 import HabitNew from './pages/HabitNew';
 import Habits from './pages/Habits';
@@ -68,18 +70,17 @@ import Journal from './pages/Journal';
 import JournalDetail from './pages/JournalDetail';
 import JournalEdit from './pages/JournalEdit';
 import JournalNew from './pages/JournalNew';
+import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
+import Pricing from './pages/Pricing';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
-import Landing from './pages/Landing';
-import Features from './pages/Features';
-import Pricing from './pages/Pricing';
-import App from './pages/App';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "About": About,
+    "App": App,
     "ArchivedHabits": ArchivedHabits,
     "DailyReview": DailyReview,
     "DailyReviewHistory": DailyReviewHistory,
@@ -91,6 +92,7 @@ export const PAGES = {
     "DecisionOptionNew": DecisionOptionNew,
     "Decisions": Decisions,
     "Disclaimer": Disclaimer,
+    "Features": Features,
     "HabitDetail": HabitDetail,
     "HabitNew": HabitNew,
     "Habits": Habits,
@@ -100,13 +102,11 @@ export const PAGES = {
     "JournalDetail": JournalDetail,
     "JournalEdit": JournalEdit,
     "JournalNew": JournalNew,
+    "Landing": Landing,
     "Onboarding": Onboarding,
+    "Pricing": Pricing,
     "Privacy": Privacy,
     "Settings": Settings,
-    "Landing": Landing,
-    "Features": Features,
-    "Pricing": Pricing,
-    "App": App,
 }
 
 export const pagesConfig = {
