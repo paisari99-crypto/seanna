@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Home, BookOpen, Target, GitBranch, TrendingUp } from 'lucide-react';
 
 export default function BottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const tabs = [
     { id: 'home', label: 'Home', icon: Home, page: 'App' },
@@ -16,6 +17,16 @@ export default function BottomNav() {
   
   const isActive = (page) => {
     return location.pathname === createPageUrl(page) || location.pathname === `/${page.toLowerCase()}`;
+  };
+  
+  const handleTabClick = (e, page) => {
+    e.preventDefault();
+    if (isActive(page)) {
+      // If already on this tab, navigate to base route
+      navigate(createPageUrl(page), { replace: true });
+    } else {
+      navigate(createPageUrl(page));
+    }
   };
   
   return (
@@ -34,9 +45,9 @@ export default function BottomNav() {
         const active = isActive(tab.page);
         
         return (
-          <Link
+          <button
             key={tab.id}
-            to={createPageUrl(tab.page)}
+            onClick={(e) => handleTabClick(e, tab.page)}
             className="flex flex-col items-center justify-center flex-1 h-full"
           >
             <Icon 
@@ -49,7 +60,7 @@ export default function BottomNav() {
             >
               {tab.label}
             </span>
-          </Link>
+          </button>
         );
       })}
     </div>
