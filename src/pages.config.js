@@ -75,6 +75,7 @@ import Onboarding from './pages/Onboarding';
 import Pricing from './pages/Pricing';
 import Privacy from './pages/Privacy';
 import Settings from './pages/Settings';
+import Demo from './pages/Demo';
 import __Layout from './Layout.jsx';
 
 
@@ -107,6 +108,7 @@ export const PAGES = {
     "Pricing": Pricing,
     "Privacy": Privacy,
     "Settings": Settings,
+    "Demo": Demo,
 }
 
 export const pagesConfig = {

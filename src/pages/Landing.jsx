@@ -137,6 +137,20 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          
+          <div className="mt-12 text-center">
+            <Link
+              to="/demo"
+              className="inline-block px-8 py-4 text-lg font-semibold rounded-full hover:opacity-90 transition-all hover:scale-105"
+              style={{
+                backgroundColor: 'var(--surface)',
+                color: 'var(--primary)',
+                border: '2px solid var(--primary)'
+              }}
+            >
+              Try Demo
+            </Link>
+          </div>
         </div>
       </section>
 
