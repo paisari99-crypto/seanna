@@ -85,27 +85,29 @@ export default function Landing() {
             <br />
             Everything backed up and exportable — your data, your way.
           </p>
-          <button
-            onClick={handleGetStarted}
-            className="px-8 py-4 text-lg font-semibold rounded-full hover:opacity-90 transition-opacity"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'var(--primary-foreground)'
-            }}
-          >
-            Get Started Free
-          </button>
-          <Link
-            to="/demo"
-            className="inline-block px-8 py-4 text-lg font-semibold rounded-full hover:opacity-90 transition-opacity mt-4"
-            style={{
-              backgroundColor: 'var(--surface)',
-              color: 'var(--primary)',
-              border: '2px solid var(--primary)'
-            }}
-          >
-            Try Demo
-          </Link>
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={handleGetStarted}
+              className="px-8 py-4 text-lg font-semibold rounded-full hover:opacity-90 transition-opacity"
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'var(--primary-foreground)'
+              }}
+            >
+              Get Started Free
+            </button>
+            <Link
+              to="/demo"
+              className="px-8 py-4 text-lg font-semibold rounded-full hover:opacity-90 transition-opacity"
+              style={{
+                backgroundColor: 'var(--surface)',
+                color: 'var(--primary)',
+                border: '2px solid var(--primary)'
+              }}
+            >
+              Try Demo
+            </Link>
+          </div>
         </div>
       </section>
 
