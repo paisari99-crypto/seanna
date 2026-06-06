@@ -1,5 +1,6 @@
 import TopNav from '@/components/TopNav';
 import { Link } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 import { Target, BookOpen, GitBranch, TrendingUp, Shield, Zap, Check } from 'lucide-react';
 
 export default function Features() {

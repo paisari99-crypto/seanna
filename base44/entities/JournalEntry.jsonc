@@ -1,0 +1,67 @@
+{
+  "name": "JournalEntry",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "externalId": {
+      "type": "string",
+      "description": "Stable external ID for backup/import deduplication"
+    },
+    "title": {
+      "type": "string",
+      "description": "Entry title"
+    },
+    "body": {
+      "type": "string",
+      "description": "Entry body content"
+    },
+    "moodScore": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Mood score from 1 to 10"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization"
+    },
+    "aiSummary": {
+      "type": "string",
+      "description": "AI-generated summary"
+    },
+    "aiKeyInsights": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-generated key insights"
+    }
+  },
+  "required": [
+    "body"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

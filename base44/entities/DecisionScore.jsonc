@@ -1,0 +1,61 @@
+{
+  "name": "DecisionScore",
+  "type": "object",
+  "properties": {
+    "decisionId": {
+      "type": "string",
+      "relation": {
+        "entity": "Decision",
+        "type": "many-to-one"
+      },
+      "description": "Reference to Decision"
+    },
+    "optionId": {
+      "type": "string",
+      "relation": {
+        "entity": "DecisionOption",
+        "type": "many-to-one"
+      },
+      "description": "Reference to DecisionOption"
+    },
+    "criterionId": {
+      "type": "string",
+      "relation": {
+        "entity": "DecisionCriterion",
+        "type": "many-to-one"
+      },
+      "description": "Reference to DecisionCriterion"
+    },
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Score from 0 to 10"
+    }
+  },
+  "required": [
+    "score"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

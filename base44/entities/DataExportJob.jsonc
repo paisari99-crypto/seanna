@@ -1,0 +1,44 @@
+{
+  "name": "DataExportJob",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "queued",
+      "description": "Export job status"
+    },
+    "exportUrl": {
+      "type": "string",
+      "description": "URL to download exported data"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

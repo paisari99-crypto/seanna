@@ -1,0 +1,47 @@
+{
+  "name": "DecisionOption",
+  "type": "object",
+  "properties": {
+    "decisionId": {
+      "type": "string",
+      "relation": {
+        "entity": "Decision",
+        "type": "many-to-one"
+      },
+      "description": "Reference to Decision"
+    },
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "name": {
+      "type": "string",
+      "description": "Option name"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about this option"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

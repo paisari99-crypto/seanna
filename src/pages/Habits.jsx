@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Plus, AlertCircle, Check, CornerDownRight } from 'lucide-react';
+import { Plus, AlertCircle, Check, CornerDownRight, Target } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import DuplicateHabitsDialog from '../components/DuplicateHabitsDialog';
 import { getUserToday, calculateCurrentStreak } from '../components/dateUtils';

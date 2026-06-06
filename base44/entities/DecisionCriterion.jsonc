@@ -1,0 +1,49 @@
+{
+  "name": "DecisionCriterion",
+  "type": "object",
+  "properties": {
+    "decisionId": {
+      "type": "string",
+      "relation": {
+        "entity": "Decision",
+        "type": "many-to-one"
+      },
+      "description": "Reference to Decision"
+    },
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "name": {
+      "type": "string",
+      "description": "Criterion name"
+    },
+    "weight": {
+      "type": "number",
+      "default": 1,
+      "description": "Criterion weight"
+    }
+  },
+  "required": [
+    "name",
+    "weight"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

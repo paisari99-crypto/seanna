@@ -101,8 +101,9 @@ export default function HabitDetail() {
           }
           
           // Calculate streaks
-          const current = calculateCurrentStreak(allLogs, todayDate);
-          const best = calculateBestStreak(allLogs);
+          const logsForStreak = await base44.entities.HabitLog.filter({ habitId: id, userId: uid }, '-date');
+          const current = calculateCurrentStreak(logsForStreak, todayDate);
+          const best = calculateBestStreak(logsForStreak);
           setCurrentStreak(current);
           setBestStreak(best);
         }

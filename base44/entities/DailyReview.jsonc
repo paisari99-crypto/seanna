@@ -1,0 +1,52 @@
+{
+  "name": "DailyReview",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Review date in YYYY-MM-DD format"
+    },
+    "workedWell": {
+      "type": "string",
+      "description": "What worked today"
+    },
+    "difficult": {
+      "type": "string",
+      "description": "What was difficult"
+    },
+    "focusTomorrow": {
+      "type": "string",
+      "description": "One focus for tomorrow"
+    },
+    "summarySnapshot": {
+      "type": "object",
+      "description": "Daily stats snapshot (habits completed, etc)"
+    }
+  },
+  "required": [
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

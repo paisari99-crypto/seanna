@@ -1,0 +1,61 @@
+{
+  "name": "HabitLog",
+  "type": "object",
+  "properties": {
+    "habitId": {
+      "type": "string",
+      "relation": {
+        "entity": "Habit",
+        "type": "many-to-one"
+      },
+      "description": "Reference to Habit"
+    },
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "externalId": {
+      "type": "string",
+      "description": "Stable external ID for backup/import deduplication"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of habit log"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "done",
+        "skipped",
+        "missed"
+      ],
+      "description": "Habit completion status"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional note"
+    }
+  },
+  "required": [
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

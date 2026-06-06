@@ -1,0 +1,74 @@
+{
+  "name": "Habit",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "externalId": {
+      "type": "string",
+      "description": "Stable external ID for backup/import deduplication"
+    },
+    "name": {
+      "type": "string",
+      "description": "Habit name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Habit description"
+    },
+    "scheduleType": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "custom"
+      ],
+      "description": "Schedule type for the habit"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the habit is currently active"
+    },
+    "reminderEnabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether reminder is enabled"
+    },
+    "reminderTime": {
+      "type": "string",
+      "default": "20:00",
+      "description": "Reminder time in HH:mm format"
+    },
+    "aiSuggestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-generated suggestions"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

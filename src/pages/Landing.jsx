@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Zap, Target, BookOpen, GitBranch, TrendingUp, Shield, LogIn } from 'lucide-react';
+import { Zap, Target, BookOpen, GitBranch, TrendingUp, Shield, LogIn, Check } from 'lucide-react';
 
 export default function Landing() {
   const handleGetStarted = () => {

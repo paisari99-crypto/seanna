@@ -1,4 +1,5 @@
 import TopNav from '@/components/TopNav';
+import { base44 } from '@/api/base44Client';
 import { Check } from 'lucide-react';
 
 export default function Pricing() {

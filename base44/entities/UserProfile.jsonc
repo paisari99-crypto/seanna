@@ -1,0 +1,61 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "displayName": {
+      "type": "string",
+      "description": "User's display name"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Europe/London",
+      "description": "User's timezone"
+    },
+    "planTier": {
+      "type": "string",
+      "enum": [
+        "free",
+        "premium"
+      ],
+      "default": "free",
+      "description": "User's subscription plan tier"
+    },
+    "quietHoursEnabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether quiet hours are enabled"
+    },
+    "quietHoursStart": {
+      "type": "string",
+      "default": "22:00",
+      "description": "Quiet hours start time in HH:mm format"
+    },
+    "quietHoursEnd": {
+      "type": "string",
+      "default": "08:00",
+      "description": "Quiet hours end time in HH:mm format"
+    },
+    "lastBackupAt": {
+      "type": "string",
+      "description": "ISO timestamp of last successful backup export"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

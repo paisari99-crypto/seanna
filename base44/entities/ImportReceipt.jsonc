@@ -1,0 +1,69 @@
+{
+  "name": "ImportReceipt",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "backupHash": {
+      "type": "string",
+      "description": "SHA-256 hash of normalized backup content"
+    },
+    "fileName": {
+      "type": "string",
+      "description": "Original backup file name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Backup format version"
+    },
+    "importedAt": {
+      "type": "string",
+      "description": "ISO timestamp of import"
+    },
+    "countsCreated": {
+      "type": "object",
+      "description": "Counts of created records by type"
+    },
+    "countsSkipped": {
+      "type": "object",
+      "description": "Counts of skipped records by type"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Warning messages from import"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Error messages from import"
+    }
+  },
+  "required": [
+    "backupHash"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "Decision",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "relation": {
+        "entity": "UserProfile",
+        "type": "many-to-one"
+      },
+      "description": "Reference to UserProfile"
+    },
+    "externalId": {
+      "type": "string",
+      "description": "Stable external ID for backup/import deduplication"
+    },
+    "title": {
+      "type": "string",
+      "description": "Decision title"
+    },
+    "context": {
+      "type": "string",
+      "description": "Decision context and details"
+    },
+    "aiRecommendation": {
+      "type": "string",
+      "description": "AI-generated recommendation"
+    },
+    "aiRisks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-identified risks"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "data.userId": "{{user.id}}"
+    },
+    "read": {
+      "data.userId": "{{user.id}}"
+    },
+    "update": {
+      "data.userId": "{{user.id}}"
+    },
+    "delete": {
+      "data.userId": "{{user.id}}"
+    }
+  }
+}
